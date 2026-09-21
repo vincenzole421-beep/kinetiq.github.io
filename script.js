@@ -1,1050 +1,1402 @@
-/* ==========================================
-   STUDYFLOW - STUDY PLANNER
-   ========================================== */
+/* =====================================================
+   STUDY MATE
+   Complete Frontend Application
+===================================================== */
 
 
-/* ---------- DATA ---------- */
+/* ================= GLOBAL DATA ================= */
 
-let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-let subjects = JSON.parse(localStorage.getItem("subjects")) || [];
-let schedules = JSON.parse(localStorage.getItem("schedules")) || [];
-let exams = JSON.parse(localStorage.getItem("exams")) || [];
-let goals = JSON.parse(localStorage.getItem("goals")) || [];
-let notes = JSON.parse(localStorage.getItem("notes")) || [];
+let users = JSON.parse(localStorage.getItem("studyMateUsers")) || [];
 
-let timerSeconds = 25 * 60;
+let currentUserEmail =
+    localStorage.getItem("studyMateCurrentUser") || null;
+
+let currentUser = null;
+
+let taskFilter = "all";
+
 let timerInterval = null;
 
+let timerSeconds = 25 * 60;
 
-/* ---------- HELPERS ---------- */
 
-function saveData() {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-    localStorage.setItem("subjects", JSON.stringify(subjects));
-    localStorage.setItem("schedules", JSON.stringify(schedules));
-    localStorage.setItem("exams", JSON.stringify(exams));
-    localStorage.setItem("goals", JSON.stringify(goals));
-    localStorage.setItem("notes", JSON.stringify(notes));
+/* ================= DEFAULT USER DATA ================= */
+
+function createUserData() {
+
+    return {
+
+        subjects: [],
+
+        tasks: [],
+
+        notes: [],
+
+        exams: [],
+
+        planner: [],
+
+        studyMinutes: 0,
+
+        streak: 0,
+
+        lastStudyDate: null
+
+    };
+
 }
 
-function generateId() {
-    return Date.now() + Math.floor(Math.random() * 1000);
-}
 
-function today() {
-    return new Date().toISOString().split("T")[0];
-}
+/* ================= INIT ================= */
 
-function formatDate(date) {
+document.addEventListener("DOMContentLoaded", () => {
 
-    if (!date) return "";
-
-    return new Date(date + "T00:00:00")
-        .toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
+    document.getElementById("currentDate").textContent =
+        new Date().toLocaleDateString("en-IN", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
         });
-}
 
-function escapeHTML(text) {
+    if (currentUserEmail) {
 
-    const div = document.createElement("div");
-    div.textContent = text;
+        currentUser =
+            users.find(user => user.email === currentUserEmail);
 
-    return div.innerHTML;
-}
+        if (currentUser) {
 
+            openApplication();
 
-/* ---------- PAGE NAVIGATION ---------- */
+        }
 
-const navItems = document.querySelectorAll(".nav-item");
+    }
 
-navItems.forEach(button => {
-
-    button.addEventListener("click", () => {
-
-        const page = button.dataset.page;
-
-        showPage(page);
-
-        document.querySelector(".sidebar")
-            .classList.remove("open");
-    });
+    updateTimerDisplay();
 
 });
 
 
-function showPage(pageId) {
+/* ================= AUTH ================= */
 
-    document.querySelectorAll(".page").forEach(page => {
-        page.classList.remove("active-page");
-    });
+function showRegister() {
 
-    const page = document.getElementById(pageId);
+    document.getElementById("loginBox")
+        .classList.add("hidden");
 
-    if (page) {
-        page.classList.add("active-page");
-    }
+    document.getElementById("registerBox")
+        .classList.remove("hidden");
 
-    navItems.forEach(button => {
-
-        button.classList.toggle(
-            "active",
-            button.dataset.page === pageId
-        );
-
-    });
-
-    const titles = {
-        dashboard: "Dashboard",
-        tasks: "Study Tasks",
-        subjects: "Subjects",
-        timetable: "Weekly Timetable",
-        exams: "Exams",
-        goals: "Study Goals",
-        timer: "Focus Timer",
-        notes: "Study Notes",
-        progress: "Study Progress"
-    };
-
-    document.getElementById("pageTitle").textContent =
-        titles[pageId] || "Dashboard";
-
-    updateAll();
 }
 
 
-/* ---------- DASHBOARD ---------- */
+function showLogin() {
 
-function updateDashboard() {
+    document.getElementById("registerBox")
+        .classList.add("hidden");
 
-    document.getElementById("statSubjects").textContent =
-        subjects.length;
+    document.getElementById("loginBox")
+        .classList.remove("hidden");
 
-    document.getElementById("statTasks").textContent =
-        tasks.length;
-
-    const completed =
-        tasks.filter(task => task.completed).length;
-
-    document.getElementById("statCompleted").textContent =
-        completed;
-
-    const totalMinutes =
-        tasks.reduce((sum, task) => sum + Number(task.duration || 0), 0);
-
-    document.getElementById("statHours").textContent =
-        (totalMinutes / 60).toFixed(1);
+}
 
 
-    /* Progress */
+/* ================= REGISTER ================= */
 
-    const progress =
-        tasks.length === 0
-            ? 0
-            : Math.round((completed / tasks.length) * 100);
+document.getElementById("registerForm")
+.addEventListener("submit", function(e) {
 
-    document.getElementById("progressCircle").textContent =
-        progress + "%";
+    e.preventDefault();
 
-    document.querySelector(".progress-circle").style.background =
-        `conic-gradient(
-            var(--primary) ${progress * 3.6}deg,
-            var(--border) ${progress * 3.6}deg
-        )`;
+    const name =
+        document.getElementById("registerName").value.trim();
+
+    const studentId =
+        document.getElementById("registerStudentId").value.trim();
+
+    const email =
+        document.getElementById("registerEmail").value.trim();
+
+    const password =
+        document.getElementById("registerPassword").value;
+
+    const course =
+        document.getElementById("registerCourse").value.trim();
+
+    const department =
+        document.getElementById("registerDepartment").value.trim();
+
+    const academicYear =
+        document.getElementById("registerYear").value;
+
+    const semester =
+        document.getElementById("registerSemester").value;
 
 
-    /* Today's Tasks */
+    if (users.some(user => user.email === email)) {
 
-    const todayTasks =
-        tasks.filter(task => task.date === today());
+        showToast("Email already registered.");
 
-    const todayContainer =
-        document.getElementById("todayTasks");
-
-    if (todayTasks.length === 0) {
-
-        todayContainer.innerHTML =
-            `<p class="small-text">No tasks planned for today.</p>`;
-
-    } else {
-
-        todayContainer.innerHTML =
-            todayTasks.slice(0, 5)
-                .map(taskHTML)
-                .join("");
+        return;
 
     }
 
 
-    /* Dashboard Exams */
+    if (users.some(user => user.studentId === studentId)) {
 
-    const examContainer =
-        document.getElementById("dashboardExams");
+        showToast("Student ID already exists.");
 
-    const upcoming =
-        exams
-            .filter(exam => exam.date >= today())
-            .sort((a, b) =>
-                a.date.localeCompare(b.date)
-            )
-            .slice(0, 4);
+        return;
 
-    if (upcoming.length === 0) {
+    }
 
-        examContainer.innerHTML =
-            `<p class="small-text">No upcoming exams.</p>`;
 
-    } else {
+    const newUser = {
 
-        examContainer.innerHTML =
-            upcoming.map(exam => {
+        id: Date.now(),
 
-                return `
-                    <div class="task-item">
+        name,
 
-                        <div class="task-info">
+        studentId,
 
-                            <h4>
-                                ${escapeHTML(exam.name)}
-                            </h4>
+        email,
 
-                            <p>
-                                ${formatDate(exam.date)}
-                                ${exam.time ? " • " + exam.time : ""}
-                            </p>
+        password,
+
+        course,
+
+        department,
+
+        academicYear,
+
+        semester,
+
+        ...createUserData()
+
+    };
+
+
+    users.push(newUser);
+
+    saveUsers();
+
+
+    currentUser = newUser;
+
+    currentUserEmail = email;
+
+    localStorage.setItem(
+        "studyMateCurrentUser",
+        email
+    );
+
+
+    showToast("Account created successfully!");
+
+    openApplication();
+
+});
+
+
+/* ================= LOGIN ================= */
+
+document.getElementById("loginForm")
+.addEventListener("submit", function(e) {
+
+    e.preventDefault();
+
+    const email =
+        document.getElementById("loginEmail").value.trim();
+
+    const password =
+        document.getElementById("loginPassword").value;
+
+
+    const user = users.find(
+        u =>
+            u.email === email &&
+            u.password === password
+    );
+
+
+    if (!user) {
+
+        showToast("Invalid email or password.");
+
+        return;
+
+    }
+
+
+    currentUser = user;
+
+    currentUserEmail = email;
+
+
+    localStorage.setItem(
+        "studyMateCurrentUser",
+        email
+    );
+
+
+    openApplication();
+
+});
+
+
+/* ================= OPEN APP ================= */
+
+function openApplication() {
+
+    document.getElementById("authScreen")
+        .classList.add("hidden");
+
+    document.getElementById("app")
+        .classList.remove("hidden");
+
+
+    renderEverything();
+
+}
+
+
+/* ================= LOGOUT ================= */
+
+function logout() {
+
+    localStorage.removeItem("studyMateCurrentUser");
+
+    location.reload();
+
+}
+
+
+/* ================= SAVE DATABASE ================= */
+
+function saveUsers() {
+
+    localStorage.setItem(
+        "studyMateUsers",
+        JSON.stringify(users)
+    );
+
+}
+
+
+/* ================= PAGE NAVIGATION ================= */
+
+function showPage(pageId, element) {
+
+    document.querySelectorAll(".page")
+        .forEach(page => page.classList.remove("active-page"));
+
+    const page =
+        document.getElementById(pageId);
+
+    if (page) {
+
+        page.classList.add("active-page");
+
+    }
+
+
+    document.querySelectorAll(".nav-item")
+        .forEach(item => item.classList.remove("active"));
+
+
+    if (element) {
+
+        element.classList.add("active");
+
+    }
+
+
+    const titles = {
+
+        dashboard: "Dashboard",
+        subjects: "Subjects",
+        planner: "Study Planner",
+        tasks: "Tasks",
+        notes: "Notes",
+        exams: "Exam Preparation",
+        timer: "Pomodoro Timer",
+        profile: "Student Profile",
+        students: "Student Database"
+
+    };
+
+
+    document.getElementById("pageTitle")
+        .textContent = titles[pageId] || "Study Mate";
+
+}
+
+
+function showPageById(id) {
+
+    const nav =
+        document.querySelector(
+            `.nav-item[onclick*="${id}"]`
+        );
+
+    showPage(id, nav);
+
+}
+
+
+/* ================= MODALS ================= */
+
+function openModal(id) {
+
+    document
+        .getElementById(id)
+        .classList.add("show");
+
+}
+
+
+function closeModal(id) {
+
+    document
+        .getElementById(id)
+        .classList.remove("show");
+
+}
+
+
+/* ================= SUBJECTS ================= */
+
+document.getElementById("subjectForm")
+.addEventListener("submit", function(e) {
+
+    e.preventDefault();
+
+
+    const name =
+        document.getElementById("subjectName").value.trim();
+
+    const difficulty =
+        document.getElementById("subjectDifficulty").value;
+
+
+    currentUser.subjects.push({
+
+        id: Date.now(),
+
+        name,
+
+        difficulty,
+
+        topics: []
+
+    });
+
+
+    saveUsers();
+
+    this.reset();
+
+    closeModal("subjectModal");
+
+    renderSubjects();
+
+    renderDashboard();
+
+    showToast("Subject added.");
+
+});
+
+
+function renderSubjects() {
+
+    const container =
+        document.getElementById("subjectsContainer");
+
+
+    if (!currentUser.subjects.length) {
+
+        container.innerHTML = `
+            <div class="panel">
+                <p>No subjects added yet.</p>
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        currentUser.subjects.map(subject => {
+
+            const completed =
+                subject.topics.filter(t => t.completed).length;
+
+            const total =
+                subject.topics.length;
+
+            const progress =
+                total
+                    ? Math.round((completed / total) * 100)
+                    : 0;
+
+
+            return `
+
+                <div class="subject-card">
+
+                    <div class="subject-top">
+
+                        <div>
+
+                            <h3>
+                                ${escapeHTML(subject.name)}
+                            </h3>
+
+                            <small>
+                                ${total} topics
+                            </small>
+
+                        </div>
+
+                        <span class="difficulty ${subject.difficulty.toLowerCase()}">
+                            ${subject.difficulty}
+                        </span>
+
+                    </div>
+
+
+                    <div class="progress-item">
+
+                        <div class="progress-label">
+
+                            <span>Progress</span>
+
+                            <strong>${progress}%</strong>
+
+                        </div>
+
+                        <div class="progress-bar">
+
+                            <div
+                                class="progress-fill"
+                                style="width:${progress}%"
+                            ></div>
 
                         </div>
 
                     </div>
-                `;
 
-            }).join("");
-    }
+
+                    <div class="topic-list">
+
+                        ${
+                            subject.topics.length
+                                ? subject.topics.map(topic => `
+
+                                    <label class="topic ${topic.completed ? "completed" : ""}">
+
+                                        <input
+                                            type="checkbox"
+                                            ${topic.completed ? "checked" : ""}
+                                            onchange="toggleTopic(${subject.id}, ${topic.id})"
+                                        >
+
+                                        <span>
+                                            ${escapeHTML(topic.name)}
+                                        </span>
+
+                                    </label>
+
+                                `).join("")
+                                : `<p style="font-size:12px;color:var(--muted)">
+                                    No topics yet.
+                                   </p>`
+                        }
+
+                    </div>
+
+
+                    <button
+                        class="add-topic-btn"
+                        onclick="openTopicModal(${subject.id})"
+                    >
+                        + Add Unit / Topic
+                    </button>
+
+                </div>
+
+            `;
+
+        }).join("");
+
 }
 
 
-/* ---------- TASKS ---------- */
+/* ================= ADD TOPIC ================= */
 
-function taskHTML(task) {
+function openTopicModal(subjectId) {
 
-    return `
-        <div class="task-item ${task.completed ? "completed" : ""}">
+    document.getElementById("topicSubjectId").value =
+        subjectId;
 
-            <input
-                class="task-checkbox"
-                type="checkbox"
-                ${task.completed ? "checked" : ""}
-                onchange="toggleTask(${task.id})"
-            >
+    openModal("topicModal");
 
-            <div class="task-info">
+}
 
-                <h4>
-                    ${escapeHTML(task.name)}
-                </h4>
 
-                <p>
-                    ${escapeHTML(task.subject)}
-                    • ${formatDate(task.date)}
-                    • ${task.duration} min
-                </p>
+document.getElementById("topicForm")
+.addEventListener("submit", function(e) {
 
-            </div>
+    e.preventDefault();
 
-            <span class="priority ${task.priority}">
-                ${task.priority}
-            </span>
 
-            <button
-                class="delete-btn"
-                onclick="deleteTask(${task.id})"
-            >
-                ×
-            </button>
+    const subjectId =
+        Number(document.getElementById("topicSubjectId").value);
 
-        </div>
-    `;
+    const name =
+        document.getElementById("topicName").value.trim();
+
+    const difficulty =
+        document.getElementById("topicDifficulty").value;
+
+
+    const subject =
+        currentUser.subjects.find(
+            s => s.id === subjectId
+        );
+
+
+    if (!subject) return;
+
+
+    subject.topics.push({
+
+        id: Date.now(),
+
+        name,
+
+        difficulty,
+
+        completed: false
+
+    });
+
+
+    saveUsers();
+
+    this.reset();
+
+    closeModal("topicModal");
+
+    renderSubjects();
+
+    renderDashboard();
+
+    showToast("Topic added.");
+
+});
+
+
+/* ================= TOGGLE TOPIC ================= */
+
+function toggleTopic(subjectId, topicId) {
+
+    const subject =
+        currentUser.subjects.find(
+            s => s.id === subjectId
+        );
+
+
+    if (!subject) return;
+
+
+    const topic =
+        subject.topics.find(
+            t => t.id === topicId
+        );
+
+
+    if (!topic) return;
+
+
+    topic.completed =
+        !topic.completed;
+
+
+    if (topic.completed) {
+
+        recordStudyActivity();
+
+    }
+
+
+    saveUsers();
+
+    renderSubjects();
+
+    renderDashboard();
+
+}
+
+
+/* ================= TASKS ================= */
+
+document.getElementById("taskForm")
+.addEventListener("submit", function(e) {
+
+    e.preventDefault();
+
+
+    currentUser.tasks.push({
+
+        id: Date.now(),
+
+        title:
+            document.getElementById("taskTitle").value.trim(),
+
+        priority:
+            document.getElementById("taskPriority").value,
+
+        dueDate:
+            document.getElementById("taskDueDate").value,
+
+        completed: false
+
+    });
+
+
+    saveUsers();
+
+    this.reset();
+
+    closeModal("taskModal");
+
+    renderTasks();
+
+    renderDashboard();
+
+    showToast("Task added.");
+
+});
+
+
+function filterTasks(filter) {
+
+    taskFilter = filter;
+
+    renderTasks();
+
 }
 
 
 function renderTasks() {
 
     const container =
-        document.getElementById("taskList");
-
-    let filtered = [...tasks];
-
-    const filter =
-        document.getElementById("taskFilter").value;
-
-    const priority =
-        document.getElementById("priorityFilter").value;
+        document.getElementById("tasksContainer");
 
 
-    if (filter === "pending") {
+    let tasks =
+        [...currentUser.tasks];
 
-        filtered =
-            filtered.filter(task => !task.completed);
+
+    if (taskFilter === "pending") {
+
+        tasks =
+            tasks.filter(t => !t.completed);
 
     }
 
-    if (filter === "completed") {
+    if (taskFilter === "completed") {
 
-        filtered =
-            filtered.filter(task => task.completed);
-
-    }
-
-    if (filter === "today") {
-
-        filtered =
-            filtered.filter(task => task.date === today());
-
-    }
-
-    if (priority !== "all") {
-
-        filtered =
-            filtered.filter(task =>
-                task.priority === priority
-            );
+        tasks =
+            tasks.filter(t => t.completed);
 
     }
 
 
-    if (filtered.length === 0) {
-
-        container.innerHTML =
-            `<p class="small-text">No tasks found.</p>`;
-
-        return;
-    }
-
-
-    filtered.sort((a, b) =>
-        a.date.localeCompare(b.date)
+    tasks.sort(
+        (a, b) =>
+            new Date(a.dueDate) -
+            new Date(b.dueDate)
     );
 
+
+    if (!tasks.length) {
+
+        container.innerHTML =
+            `<p>No tasks found.</p>`;
+
+        return;
+
+    }
+
+
     container.innerHTML =
-        filtered.map(taskHTML).join("");
+        tasks.map(task => `
+
+            <div class="task-item">
+
+                <input
+                    class="task-check"
+                    type="checkbox"
+                    ${task.completed ? "checked" : ""}
+                    onchange="toggleTask(${task.id})"
+                >
+
+                <div class="task-content
+                    ${task.completed ? "task-completed" : ""}">
+
+                    <strong>
+                        ${escapeHTML(task.title)}
+                    </strong>
+
+                    <small>
+                        Due: ${formatDate(task.dueDate)}
+                    </small>
+
+                </div>
+
+                <span class="priority priority-${task.priority.toLowerCase()}">
+                    ${task.priority}
+                </span>
+
+            </div>
+
+        `).join("");
+
 }
 
 
 function toggleTask(id) {
 
     const task =
-        tasks.find(task => task.id === id);
+        currentUser.tasks.find(
+            t => t.id === id
+        );
+
 
     if (!task) return;
 
-    task.completed = !task.completed;
 
-    saveData();
+    task.completed =
+        !task.completed;
 
-    updateAll();
+
+    saveUsers();
+
+    renderTasks();
+
+    renderDashboard();
+
 }
 
 
-function deleteTask(id) {
+/* ================= NOTES ================= */
 
-    tasks =
-        tasks.filter(task => task.id !== id);
+document.getElementById("noteForm")
+.addEventListener("submit", function(e) {
 
-    saveData();
-
-    updateAll();
-}
+    e.preventDefault();
 
 
-/* ---------- TASK FORM ---------- */
+    currentUser.notes.push({
 
-document
-    .getElementById("taskForm")
-    .addEventListener("submit", function(e) {
+        id: Date.now(),
 
-        e.preventDefault();
+        title:
+            document.getElementById("noteTitle").value.trim(),
 
-        const task = {
+        subject:
+            document.getElementById("noteSubject").value.trim(),
 
-            id: generateId(),
+        content:
+            document.getElementById("noteContent").value.trim(),
 
-            name:
-                document.getElementById("taskName").value.trim(),
+        createdAt:
+            new Date().toISOString()
 
-            subject:
-                document.getElementById("taskSubject").value.trim(),
-
-            date:
-                document.getElementById("taskDate").value,
-
-            duration:
-                Number(
-                    document.getElementById("taskDuration").value
-                ) || 30,
-
-            priority:
-                document.getElementById("taskPriority").value,
-
-            completed: false
-        };
-
-
-        tasks.push(task);
-
-        saveData();
-
-        this.reset();
-
-        closeModal("taskModal");
-
-        updateAll();
     });
 
 
-/* ---------- SUBJECTS ---------- */
+    saveUsers();
 
-function renderSubjects() {
+    this.reset();
+
+    closeModal("noteModal");
+
+    renderNotes();
+
+    showToast("Note saved.");
+
+});
+
+
+function renderNotes() {
 
     const container =
-        document.getElementById("subjectList");
+        document.getElementById("notesContainer");
 
-    if (subjects.length === 0) {
+
+    const search =
+        document.getElementById("noteSearch")
+            .value
+            .toLowerCase();
+
+
+    const notes =
+        currentUser.notes.filter(note =>
+
+            note.title.toLowerCase().includes(search) ||
+
+            note.content.toLowerCase().includes(search) ||
+
+            note.subject.toLowerCase().includes(search)
+
+        );
+
+
+    if (!notes.length) {
 
         container.innerHTML =
-            `<p class="small-text">
-                No subjects added yet.
-            </p>`;
+            `<div class="panel">
+                <p>No notes found.</p>
+             </div>`;
 
         return;
+
     }
 
 
     container.innerHTML =
-        subjects.map(subject => {
+        notes.map(note => `
 
-            const subjectTasks =
-                tasks.filter(
-                    task =>
-                        task.subject.toLowerCase() ===
-                        subject.name.toLowerCase()
-                );
+            <div class="note-card">
 
-            const completed =
-                subjectTasks.filter(
-                    task => task.completed
-                ).length;
+                <span class="note-subject">
+                    ${escapeHTML(note.subject || "General")}
+                </span>
 
-            return `
-                <div class="subject-card">
+                <h3>
+                    ${escapeHTML(note.title)}
+                </h3>
 
-                    <div
-                        class="subject-color"
-                        style="background:${subject.color}"
-                    ></div>
-
-                    <h3>
-                        ${escapeHTML(subject.name)}
-                    </h3>
-
-                    <p>
-                        👨‍🏫
-                        ${escapeHTML(
-                            subject.teacher || "No teacher added"
-                        )}
-                    </p>
-
-                    <p>
-                        📚 ${subjectTasks.length} tasks
-                    </p>
-
-                    <p>
-                        ✅ ${completed} completed
-                    </p>
-
-                    <button
-                        class="delete-btn"
-                        onclick="deleteSubject(${subject.id})"
-                    >
-                        Delete
-                    </button>
-
-                </div>
-            `;
-
-        }).join("");
-}
-
-
-document
-    .getElementById("subjectForm")
-    .addEventListener("submit", function(e) {
-
-        e.preventDefault();
-
-        subjects.push({
-
-            id: generateId(),
-
-            name:
-                document.getElementById("subjectName").value.trim(),
-
-            teacher:
-                document.getElementById("subjectTeacher").value.trim(),
-
-            color:
-                document.getElementById("subjectColor").value
-
-        });
-
-        saveData();
-
-        this.reset();
-
-        closeModal("subjectModal");
-
-        updateAll();
-    });
-
-
-function deleteSubject(id) {
-
-    subjects =
-        subjects.filter(subject => subject.id !== id);
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* ---------- TIMETABLE ---------- */
-
-const days = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday"
-];
-
-
-function renderTimetable() {
-
-    const container =
-        document.getElementById("timetableGrid");
-
-    container.innerHTML = days.map(day => {
-
-        const daySchedules =
-            schedules.filter(
-                item => item.day === day
-            );
-
-        return `
-            <div class="day-column">
-
-                <div class="day-header">
-                    ${day}
-                </div>
-
-                ${
-                    daySchedules.length === 0
-                    ?
-                    `<p class="small-text"
-                        style="padding:10px">
-                        No study session
-                    </p>`
-                    :
-                    daySchedules.map(item => {
-
-                        return `
-                            <div class="schedule-item">
-
-                                <strong>
-                                    ${escapeHTML(item.subject)}
-                                </strong>
-
-                                <span>
-                                    ${item.start}
-                                    -
-                                    ${item.end}
-                                </span>
-
-                                <button
-                                    class="delete-btn"
-                                    onclick="deleteSchedule(${item.id})"
-                                >
-                                    ×
-                                </button>
-
-                            </div>
-                        `;
-
-                    }).join("")
-                }
+                <p>
+                    ${escapeHTML(note.content)}
+                </p>
 
             </div>
-        `;
 
-    }).join("");
+        `).join("");
+
 }
 
 
-document
-    .getElementById("scheduleForm")
-    .addEventListener("submit", function(e) {
+/* ================= EXAMS ================= */
 
-        e.preventDefault();
+document.getElementById("examForm")
+.addEventListener("submit", function(e) {
 
-        schedules.push({
+    e.preventDefault();
 
-            id: generateId(),
 
-            day:
-                document.getElementById("scheduleDay").value,
+    currentUser.exams.push({
 
-            subject:
-                document.getElementById("scheduleSubject").value.trim(),
+        id: Date.now(),
 
-            start:
-                document.getElementById("scheduleStart").value,
+        subject:
+            document.getElementById("examSubject").value.trim(),
 
-            end:
-                document.getElementById("scheduleEnd").value
+        date:
+            document.getElementById("examDate").value,
 
-        });
+        topics:
+            document.getElementById("examTopics").value.trim()
 
-        saveData();
-
-        this.reset();
-
-        closeModal("scheduleModal");
-
-        updateAll();
     });
 
 
-function deleteSchedule(id) {
+    saveUsers();
 
-    schedules =
-        schedules.filter(item => item.id !== id);
+    this.reset();
 
-    saveData();
+    closeModal("examModal");
 
-    updateAll();
-}
+    renderExams();
 
+    renderDashboard();
 
-/* ---------- EXAMS ---------- */
+    showToast("Exam added.");
 
-function getDaysUntil(date) {
-
-    const exam =
-        new Date(date + "T00:00:00");
-
-    const now =
-        new Date(today() + "T00:00:00");
-
-    return Math.ceil(
-        (exam - now) / 86400000
-    );
-}
+});
 
 
 function renderExams() {
 
     const container =
-        document.getElementById("examList");
+        document.getElementById("examsContainer");
 
-    if (exams.length === 0) {
+
+    const exams =
+        [...currentUser.exams]
+            .sort(
+                (a,b) =>
+                    new Date(a.date) -
+                    new Date(b.date)
+            );
+
+
+    if (!exams.length) {
 
         container.innerHTML =
-            `<p class="small-text">
-                No exams added.
-            </p>`;
+            `<div class="panel">
+                <p>No exams added yet.</p>
+             </div>`;
 
         return;
+
     }
 
 
-    const sorted =
-        [...exams].sort(
-            (a, b) =>
-                a.date.localeCompare(b.date)
+    container.innerHTML =
+        exams.map(exam => {
+
+            const days =
+                calculateDaysLeft(exam.date);
+
+
+            return `
+
+                <div class="exam-card">
+
+                    <h3>
+                        ${escapeHTML(exam.subject)}
+                    </h3>
+
+                    <div class="exam-date">
+                        📅 ${formatDate(exam.date)}
+                    </div>
+
+                    <div class="days-left">
+                        ${days >= 0 ? days : 0}
+                    </div>
+
+                    <small>
+                        ${days === 1 ? "day" : "days"} remaining
+                    </small>
+
+                    <p style="margin-top:15px;font-size:12px;color:var(--muted)">
+                        ${escapeHTML(exam.topics || "No important topics added.")}
+                    </p>
+
+                </div>
+
+            `;
+
+        }).join("");
+
+}
+
+
+/* ================= SMART PLANNER ================= */
+
+function generatePlanner() {
+
+    const examDate =
+        document.getElementById("plannerExamDate").value;
+
+    const hours =
+        Number(
+            document.getElementById("plannerHours").value
+        );
+
+    const startTime =
+        document.getElementById("plannerStartTime").value;
+
+
+    if (!examDate) {
+
+        showToast("Please enter an exam date.");
+
+        return;
+
+    }
+
+
+    if (!currentUser.subjects.length) {
+
+        showToast("Add subjects and topics first.");
+
+        return;
+
+    }
+
+
+    let topics = [];
+
+
+    currentUser.subjects.forEach(subject => {
+
+        subject.topics
+            .filter(topic => !topic.completed)
+            .forEach(topic => {
+
+                let priority = 1;
+
+
+                if (topic.difficulty === "Medium")
+                    priority = 2;
+
+                if (topic.difficulty === "Hard")
+                    priority = 3;
+
+
+                if (subject.difficulty === "Hard")
+                    priority += 1;
+
+
+                topics.push({
+
+                    subject:
+                        subject.name,
+
+                    topic:
+                        topic.name,
+
+                    difficulty:
+                        topic.difficulty,
+
+                    priority
+
+                });
+
+            });
+
+    });
+
+
+    topics.sort(
+        (a,b) =>
+            b.priority -
+            a.priority
+    );
+
+
+    if (!topics.length) {
+
+        showToast("All topics are already completed!");
+
+        return;
+
+    }
+
+
+    const sessionsPerDay =
+        Math.max(
+            1,
+            Math.floor(hours)
         );
 
 
+    const schedule = [];
+
+
+    for (
+        let i = 0;
+        i < topics.length;
+        i++
+    ) {
+
+        const dayOffset =
+            Math.floor(
+                i / sessionsPerDay
+            );
+
+
+        const date =
+            new Date();
+
+
+        date.setDate(
+            date.getDate() + dayOffset
+        );
+
+
+        let sessionIndex =
+            i % sessionsPerDay;
+
+
+        const start =
+            convertTimeToMinutes(startTime) +
+            sessionIndex * 75;
+
+
+        const end =
+            start + 60;
+
+
+        schedule.push({
+
+            id: Date.now() + i,
+
+            date:
+                date.toISOString().split("T")[0],
+
+            subject:
+                topics[i].subject,
+
+            topic:
+                topics[i].topic,
+
+            difficulty:
+                topics[i].difficulty,
+
+            start:
+                minutesToTime(start),
+
+            end:
+                minutesToTime(end),
+
+            status:
+                "scheduled"
+
+        });
+
+    }
+
+
+    currentUser.planner =
+        schedule;
+
+
+    saveUsers();
+
+    renderPlanner();
+
+    renderDashboard();
+
+    showToast("Smart schedule generated!");
+
+}
+
+
+function renderPlanner() {
+
+    const container =
+        document.getElementById("plannerResult");
+
+
+    if (!currentUser.planner.length) {
+
+        container.innerHTML =
+            `<p>No schedule generated yet.</p>`;
+
+        return;
+
+    }
+
+
     container.innerHTML =
-        sorted.map(exam => {
+        currentUser.planner.map(session => `
 
-            const daysLeft =
-                getDaysUntil(exam.date);
+            <div class="plan-item">
 
-            let countdown;
+                <div class="plan-time">
 
-            if (daysLeft < 0) {
+                    ${formatDate(session.date)}
+                    <br>
 
-                countdown = "Completed";
+                    ${session.start} -
+                    ${session.end}
 
-            } else if (daysLeft === 0) {
+                </div>
 
-                countdown = "Today";
+                <div class="plan-info">
 
-            } else {
+                    <strong>
+                        ${escapeHTML(session.subject)}
+                    </strong>
 
-                countdown =
-                    `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`;
+                    <span>
+                        ${escapeHTML(session.topic)}
+                        • ${session.difficulty}
+                    </span>
+
+                </div>
+
+                <div style="margin-left:auto">
+
+                    <button
+                        class="secondary-btn"
+                        onclick="completeSession(${session.id})"
+                    >
+                        ✓
+                    </button>
+
+                </div>
+
+            </div>
+
+        `).join("");
+
+}
+
+
+/* ================= SESSION ================= */
+
+function completeSession(id) {
+
+    const session =
+        currentUser.planner.find(
+            s => s.id === id
+        );
+
+
+    if (!session) return;
+
+
+    session.status =
+        "completed";
+
+
+    currentUser.studyMinutes += 60;
+
+
+    recordStudyActivity();
+
+    saveUsers();
+
+    renderPlanner();
+
+    renderDashboard();
+
+    showToast("Study session completed!");
+
+}
+
+
+function rescheduleMissedSessions() {
+
+    const missed =
+        currentUser.planner.filter(
+            s => s.status === "scheduled" &&
+                 new Date(s.date) < new Date()
+        );
+
+
+    if (!missed.length) {
+
+        showToast("No missed sessions found.");
+
+        return;
+
+    }
+
+
+    missed.forEach(session => {
+
+        session.date =
+            new Date(
+                Date.now() +
+                86400000
+            )
+            .toISOString()
+            .split("T")[0];
+
+    });
+
+
+    saveUsers();
+
+    renderPlanner();
+
+    showToast(
+        `${missed.length} session(s) rescheduled.`
+    );
+
+}
+
+
+/* ================= POMODORO ================= */
+
+function startTimer() {
+
+    if (timerInterval) return;
+
+
+    timerInterval =
+        setInterval(() => {
+
+            if (timerSeconds <= 0) {
+
+                clearInterval(timerInterval);
+
+                timerInterval = null;
+
+                currentUser.studyMinutes += 25;
+
+                recordStudyActivity();
+
+                saveUsers();
+
+                renderDashboard();
+
+                showToast(
+                    "Pomodoro completed! Great work."
+                );
+
+                setTimer(5);
+
+                return;
 
             }
 
 
-            return `
-                <div class="exam-card">
+            timerSeconds--;
 
-                    <h3>
-                        ${escapeHTML(exam.name)}
-                    </h3>
+            updateTimerDisplay();
 
-                    <div class="exam-days">
-                        ${countdown}
-                    </div>
+        }, 1000);
 
-                    <p>
-                        📅 ${formatDate(exam.date)}
-                    </p>
-
-                    <p>
-                        ⏰ ${exam.time || "Time not specified"}
-                    </p>
-
-                    <p>
-                        🏫 ${escapeHTML(
-                            exam.room || "Room not specified"
-                        )}
-                    </p>
-
-                    <button
-                        class="delete-btn"
-                        onclick="deleteExam(${exam.id})"
-                    >
-                        Delete
-                    </button>
-
-                </div>
-            `;
-
-        }).join("");
 }
 
 
-document
-    .getElementById("examForm")
-    .addEventListener("submit", function(e) {
+function pauseTimer() {
 
-        e.preventDefault();
+    clearInterval(timerInterval);
 
-        exams.push({
+    timerInterval = null;
 
-            id: generateId(),
-
-            name:
-                document.getElementById("examName").value.trim(),
-
-            date:
-                document.getElementById("examDate").value,
-
-            time:
-                document.getElementById("examTime").value,
-
-            room:
-                document.getElementById("examRoom").value.trim()
-
-        });
-
-        saveData();
-
-        this.reset();
-
-        closeModal("examModal");
-
-        updateAll();
-    });
-
-
-function deleteExam(id) {
-
-    exams =
-        exams.filter(exam => exam.id !== id);
-
-    saveData();
-
-    updateAll();
 }
 
 
-/* ---------- GOALS ---------- */
+function resetTimer() {
 
-function renderGoals() {
+    pauseTimer();
 
-    const container =
-        document.getElementById("goalList");
+    timerSeconds = 25 * 60;
 
-    if (goals.length === 0) {
+    updateTimerDisplay();
 
-        container.innerHTML =
-            `<p class="small-text">
-                No goals created yet.
-            </p>`;
-
-        return;
-    }
-
-
-    container.innerHTML =
-        goals.map(goal => {
-
-            const progress =
-                Math.min(
-                    100,
-                    Math.round(
-                        (goal.current / goal.target) * 100
-                    )
-                );
-
-            return `
-                <div class="goal-card">
-
-                    <h3>
-                        ${escapeHTML(goal.name)}
-                    </h3>
-
-                    <p>
-                        ${goal.current}
-                        /
-                        ${goal.target}
-                        ${escapeHTML(goal.unit)}
-                    </p>
-
-                    <div class="goal-progress">
-                        <div style="width:${progress}%"></div>
-                    </div>
-
-                    <p>
-                        ${progress}% completed
-                    </p>
-
-                    <button
-                        class="secondary-btn"
-                        onclick="increaseGoal(${goal.id})"
-                    >
-                        + Progress
-                    </button>
-
-                    <button
-                        class="delete-btn"
-                        onclick="deleteGoal(${goal.id})"
-                    >
-                        Delete
-                    </button>
-
-                </div>
-            `;
-
-        }).join("");
 }
 
 
-document
-    .getElementById("goalForm")
-    .addEventListener("submit", function(e) {
+function setTimer(minutes) {
 
-        e.preventDefault();
+    pauseTimer();
 
-        goals.push({
+    timerSeconds = minutes * 60;
 
-            id: generateId(),
+    document.getElementById("timerMode")
+        .textContent =
+        minutes <= 5
+            ? "BREAK"
+            : "FOCUS SESSION";
 
-            name:
-                document.getElementById("goalName").value.trim(),
+    updateTimerDisplay();
 
-            target:
-                Number(
-                    document.getElementById("goalTarget").value
-                ),
-
-            unit:
-                document.getElementById("goalUnit").value.trim(),
-
-            current: 0
-
-        });
-
-        saveData();
-
-        this.reset();
-
-        closeModal("goalModal");
-
-        updateAll();
-    });
-
-
-function increaseGoal(id) {
-
-    const goal =
-        goals.find(goal => goal.id === id);
-
-    if (!goal) return;
-
-    goal.current =
-        Math.min(
-            goal.target,
-            goal.current + 1
-        );
-
-    saveData();
-
-    updateAll();
 }
 
-
-function deleteGoal(id) {
-
-    goals =
-        goals.filter(goal => goal.id !== id);
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* ---------- NOTES ---------- */
-
-function renderNotes() {
-
-    const container =
-        document.getElementById("noteList");
-
-    if (notes.length === 0) {
-
-        container.innerHTML =
-            `<p class="small-text">
-                No notes saved.
-            </p>`;
-
-        return;
-    }
-
-
-    container.innerHTML =
-        notes.map(note => {
-
-            return `
-                <div class="note-card">
-
-                    <h3>
-                        ${escapeHTML(note.title)}
-                    </h3>
-
-                    <p class="note-content">
-                        ${escapeHTML(note.content)}
-                    </p>
-
-                    <br>
-
-                    <button
-                        class="delete-btn"
-                        onclick="deleteNote(${note.id})"
-                    >
-                        Delete
-                    </button>
-
-                </div>
-            `;
-
-        }).join("");
-}
-
-
-document
-    .getElementById("noteForm")
-    .addEventListener("submit", function(e) {
-
-        e.preventDefault();
-
-        notes.push({
-
-            id: generateId(),
-
-            title:
-                document.getElementById("noteTitle").value.trim(),
-
-            content:
-                document.getElementById("noteContent").value.trim()
-
-        });
-
-        saveData();
-
-        this.reset();
-
-        closeModal("noteModal");
-
-        updateAll();
-    });
-
-
-function deleteNote(id) {
-
-    notes =
-        notes.filter(note => note.id !== id);
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* ---------- PROGRESS ---------- */
-
-function renderProgress() {
-
-    const completed =
-        tasks.filter(task => task.completed).length;
-
-    const progress =
-        tasks.length === 0
-            ? 0
-            : Math.round(
-                completed / tasks.length * 100
-            );
-
-
-    document.getElementById("taskProgressText")
-        .textContent = progress + "%";
-
-    document.getElementById("taskProgressBar")
-        .style.width = progress + "%";
-
-
-    const totalMinutes =
-        tasks.reduce(
-            (sum, task) =>
-                sum + Number(task.duration || 0),
-            0
-        );
-
-    document.getElementById("totalStudyTime")
-        .textContent = totalMinutes;
-}
-
-
-/* ---------- POMODORO TIMER ---------- */
 
 function updateTimerDisplay() {
 
@@ -1054,276 +1406,698 @@ function updateTimerDisplay() {
     const seconds =
         timerSeconds % 60;
 
+
     document.getElementById("timerDisplay")
         .textContent =
-        `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+        `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}`;
+
 }
 
 
-document
-    .getElementById("startTimer")
-    .addEventListener("click", function() {
+/* ================= PROFILE ================= */
 
-        if (timerInterval) return;
+function renderProfile() {
 
-        timerInterval =
-            setInterval(() => {
+    document.getElementById("profileName").value =
+        currentUser.name;
 
-                if (timerSeconds <= 0) {
+    document.getElementById("profileStudentId").value =
+        currentUser.studentId;
 
-                    clearInterval(timerInterval);
+    document.getElementById("profileEmail").value =
+        currentUser.email;
 
-                    timerInterval = null;
+    document.getElementById("profileCourse").value =
+        currentUser.course;
 
-                    alert("🎉 Focus session completed!");
+    document.getElementById("profileDepartment").value =
+        currentUser.department;
 
-                    return;
-                }
+    document.getElementById("profileYear").value =
+        currentUser.academicYear;
 
-                timerSeconds--;
+    document.getElementById("profileSemester").value =
+        currentUser.semester;
 
-                updateTimerDisplay();
 
-            }, 1000);
+    document.getElementById("profileAvatar")
+        .textContent =
+        currentUser.name.charAt(0).toUpperCase();
+
+}
+
+
+function saveProfile() {
+
+    currentUser.name =
+        document.getElementById("profileName").value;
+
+    currentUser.studentId =
+        document.getElementById("profileStudentId").value;
+
+    currentUser.course =
+        document.getElementById("profileCourse").value;
+
+    currentUser.department =
+        document.getElementById("profileDepartment").value;
+
+    currentUser.academicYear =
+        document.getElementById("profileYear").value;
+
+    currentUser.semester =
+        document.getElementById("profileSemester").value;
+
+
+    saveUsers();
+
+    renderEverything();
+
+    showToast("Profile updated.");
+
+}
+
+
+/* ================= DATABASE ================= */
+
+function renderStudentDatabase() {
+
+    const body =
+        document.getElementById("studentTableBody");
+
+
+    document.getElementById(
+        "databaseStudentCount"
+    ).textContent =
+        users.length;
+
+
+    body.innerHTML =
+        users.map(user => `
+
+            <tr>
+
+                <td>
+                    ${escapeHTML(user.studentId)}
+                </td>
+
+                <td>
+                    ${escapeHTML(user.name)}
+                </td>
+
+                <td>
+                    ${escapeHTML(user.email)}
+                </td>
+
+                <td>
+                    ${escapeHTML(user.course)}
+                </td>
+
+                <td>
+                    ${escapeHTML(user.department)}
+                </td>
+
+                <td>
+                    ${escapeHTML(user.academicYear)}
+                </td>
+
+            </tr>
+
+        `).join("");
+
+}
+
+
+/* ================= DASHBOARD ================= */
+
+function renderDashboard() {
+
+    document.getElementById("dashboardName")
+        .textContent =
+        currentUser.name;
+
+
+    document.getElementById("topAvatar")
+        .textContent =
+        currentUser.name
+            .charAt(0)
+            .toUpperCase();
+
+
+    let totalTopics = 0;
+
+    let completedTopics = 0;
+
+
+    currentUser.subjects.forEach(subject => {
+
+        totalTopics += subject.topics.length;
+
+        completedTopics +=
+            subject.topics
+                .filter(t => t.completed)
+                .length;
+
     });
 
 
-document
-    .getElementById("pauseTimer")
-    .addEventListener("click", function() {
-
-        clearInterval(timerInterval);
-
-        timerInterval = null;
-    });
-
-
-document
-    .getElementById("resetTimer")
-    .addEventListener("click", function() {
-
-        clearInterval(timerInterval);
-
-        timerInterval = null;
-
-        timerSeconds = 25 * 60;
-
-        updateTimerDisplay();
-    });
+    const progress =
+        totalTopics
+            ? Math.round(
+                completedTopics /
+                totalTopics *
+                100
+            )
+            : 0;
 
 
-function setTimer(minutes) {
+    document.getElementById("completedTopics")
+        .textContent =
+        completedTopics;
 
-    clearInterval(timerInterval);
 
-    timerInterval = null;
+    document.getElementById("overallProgress")
+        .textContent =
+        progress + "%";
 
-    timerSeconds = minutes * 60;
 
-    updateTimerDisplay();
+    document.getElementById("totalStudyHours")
+        .textContent =
+        (currentUser.studyMinutes / 60)
+            .toFixed(1) + "h";
+
+
+    document.getElementById("studyStreak")
+        .textContent =
+        currentUser.streak;
+
+
+    renderTodayPlan();
+
+    renderSubjectProgress();
+
+    renderDashboardTasks();
+
+    renderNextExam();
+
 }
 
 
-/* ---------- MODALS ---------- */
+/* ================= TODAY PLAN ================= */
 
-function openModal(id) {
+function renderTodayPlan() {
 
-    document
-        .getElementById(id)
-        .classList.add("show");
-}
+    const container =
+        document.getElementById("todayPlan");
 
 
-function closeModal(id) {
-
-    document
-        .getElementById(id)
-        .classList.remove("show");
-}
+    const today =
+        new Date()
+            .toISOString()
+            .split("T")[0];
 
 
-/* Close modal when clicking outside */
-
-document.querySelectorAll(".modal").forEach(modal => {
-
-    modal.addEventListener("click", function(e) {
-
-        if (e.target === modal) {
-
-            modal.classList.remove("show");
-        }
-
-    });
-
-});
-
-
-/* ---------- DARK MODE ---------- */
-
-const savedTheme =
-    localStorage.getItem("theme");
-
-if (savedTheme === "dark") {
-
-    document.body.classList.add("dark");
-
-    document.getElementById("themeToggle")
-        .textContent = "☀️ Light Mode";
-}
-
-
-document
-    .getElementById("themeToggle")
-    .addEventListener("click", function() {
-
-        document.body.classList.toggle("dark");
-
-        const dark =
-            document.body.classList.contains("dark");
-
-        localStorage.setItem(
-            "theme",
-            dark ? "dark" : "light"
+    const sessions =
+        currentUser.planner.filter(
+            s => s.date === today
         );
 
-        this.textContent =
-            dark
-                ? "☀️ Light Mode"
-                : "🌙 Dark Mode";
-    });
+
+    if (!sessions.length) {
+
+        container.innerHTML =
+            `<p style="font-size:12px;color:var(--muted)">
+                No study sessions scheduled for today.
+             </p>`;
+
+        return;
+
+    }
 
 
-/* ---------- MOBILE MENU ---------- */
+    container.innerHTML =
+        sessions.slice(0,5).map(session => `
 
-document
-    .getElementById("mobileMenu")
-    .addEventListener("click", function() {
+            <div class="plan-item">
 
-        document
-            .querySelector(".sidebar")
-            .classList.toggle("open");
-    });
+                <div class="plan-time">
+                    ${session.start}
+                    -
+                    ${session.end}
+                </div>
+
+                <div class="plan-info">
+
+                    <strong>
+                        ${escapeHTML(session.subject)}
+                    </strong>
+
+                    <span>
+                        ${escapeHTML(session.topic)}
+                    </span>
+
+                </div>
+
+            </div>
+
+        `).join("");
+
+}
 
 
-/* ---------- SEARCH ---------- */
+/* ================= SUBJECT PROGRESS ================= */
 
-document
-    .getElementById("globalSearch")
-    .addEventListener("input", function() {
+function renderSubjectProgress() {
 
-        const search =
-            this.value.toLowerCase().trim();
+    const container =
+        document.getElementById("subjectProgress");
 
-        if (!search) {
 
-            renderTasks();
+    if (!currentUser.subjects.length) {
 
-            return;
-        }
+        container.innerHTML =
+            `<p>No subjects added.</p>`;
 
-        const results =
-            tasks.filter(task =>
-                task.name.toLowerCase().includes(search) ||
-                task.subject.toLowerCase().includes(search)
+        return;
+
+    }
+
+
+    container.innerHTML =
+        currentUser.subjects.map(subject => {
+
+            const total =
+                subject.topics.length;
+
+            const completed =
+                subject.topics
+                    .filter(t => t.completed)
+                    .length;
+
+            const progress =
+                total
+                    ? Math.round(
+                        completed /
+                        total *
+                        100
+                    )
+                    : 0;
+
+
+            return `
+
+                <div class="progress-item">
+
+                    <div class="progress-label">
+
+                        <span>
+                            ${escapeHTML(subject.name)}
+                        </span>
+
+                        <strong>
+                            ${progress}%
+                        </strong>
+
+                    </div>
+
+                    <div class="progress-bar">
+
+                        <div
+                            class="progress-fill"
+                            style="width:${progress}%"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }).join("");
+
+}
+
+
+/* ================= DASHBOARD TASKS ================= */
+
+function renderDashboardTasks() {
+
+    const container =
+        document.getElementById("dashboardTasks");
+
+
+    const tasks =
+        currentUser.tasks
+            .filter(t => !t.completed)
+            .slice(0,5);
+
+
+    if (!tasks.length) {
+
+        container.innerHTML =
+            `<p>No pending tasks.</p>`;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        tasks.map(task => `
+
+            <div class="task-item">
+
+                <input
+                    type="checkbox"
+                    onchange="toggleTask(${task.id})"
+                >
+
+                <div class="task-content">
+
+                    <strong>
+                        ${escapeHTML(task.title)}
+                    </strong>
+
+                    <small>
+                        Due ${formatDate(task.dueDate)}
+                    </small>
+
+                </div>
+
+                <span class="priority priority-${task.priority.toLowerCase()}">
+                    ${task.priority}
+                </span>
+
+            </div>
+
+        `).join("");
+
+}
+
+
+/* ================= NEXT EXAM ================= */
+
+function renderNextExam() {
+
+    const countdown =
+        document.getElementById(
+            "dashboardCountdown"
+        );
+
+
+    if (!currentUser.exams.length) {
+
+        countdown.textContent =
+            "No exam";
+
+        return;
+
+    }
+
+
+    const exams =
+        currentUser.exams
+            .filter(
+                exam =>
+                    calculateDaysLeft(exam.date) >= 0
+            )
+            .sort(
+                (a,b) =>
+                    new Date(a.date) -
+                    new Date(b.date)
             );
 
-        const container =
-            document.getElementById("taskList");
 
-        showPage("tasks");
+    if (!exams.length) {
 
-        if (results.length === 0) {
+        countdown.textContent =
+            "No upcoming exam";
 
-            container.innerHTML =
-                `<p class="small-text">
-                    No results found.
-                </p>`;
+        return;
+
+    }
+
+
+    const exam = exams[0];
+
+    const days =
+        calculateDaysLeft(exam.date);
+
+
+    countdown.textContent =
+        `${days} day${days !== 1 ? "s" : ""} — ${exam.subject}`;
+
+}
+
+
+/* ================= STREAK ================= */
+
+function recordStudyActivity() {
+
+    const today =
+        new Date()
+            .toISOString()
+            .split("T")[0];
+
+
+    if (
+        currentUser.lastStudyDate === today
+    ) {
+
+        return;
+
+    }
+
+
+    if (currentUser.lastStudyDate) {
+
+        const previous =
+            new Date(
+                currentUser.lastStudyDate
+            );
+
+        const current =
+            new Date(today);
+
+
+        const difference =
+            Math.floor(
+                (
+                    current -
+                    previous
+                ) /
+                86400000
+            );
+
+
+        if (difference === 1) {
+
+            currentUser.streak++;
 
         } else {
 
-            container.innerHTML =
-                results.map(taskHTML).join("");
+            currentUser.streak = 1;
+
         }
 
-    });
+    } else {
+
+        currentUser.streak = 1;
+
+    }
 
 
-/* ---------- RESET DATA ---------- */
+    currentUser.lastStudyDate =
+        today;
 
-document
-    .getElementById("clearData")
-    .addEventListener("click", function() {
-
-        const confirmed =
-            confirm(
-                "Are you sure you want to delete all planner data?"
-            );
-
-        if (!confirmed) return;
-
-        tasks = [];
-        subjects = [];
-        schedules = [];
-        exams = [];
-        goals = [];
-        notes = [];
-
-        saveData();
-
-        updateAll();
-    });
-
-
-/* ---------- DATE ---------- */
-
-document.getElementById("currentDate")
-    .textContent =
-    new Date().toLocaleDateString(
-        "en-IN",
-        {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric"
-        }
-    );
-
-
-/* ---------- FILTER EVENTS ---------- */
-
-document
-    .getElementById("taskFilter")
-    .addEventListener("change", renderTasks);
-
-document
-    .getElementById("priorityFilter")
-    .addEventListener("change", renderTasks);
-
-
-/* ---------- UPDATE EVERYTHING ---------- */
-
-function updateAll() {
-
-    updateDashboard();
-
-    renderTasks();
-
-    renderSubjects();
-
-    renderTimetable();
-
-    renderExams();
-
-    renderGoals();
-
-    renderNotes();
-
-    renderProgress();
-
-    updateTimerDisplay();
 }
 
 
-/* ---------- INITIALIZE ---------- */
+/* ================= DARK MODE ================= */
 
-updateAll();
+function toggleDarkMode() {
+
+    document.body.classList.toggle("dark");
+
+    localStorage.setItem(
+        "studyMateDarkMode",
+        document.body.classList.contains("dark")
+    );
+
+}
+
+
+if (
+    localStorage.getItem("studyMateDarkMode")
+    === "true"
+) {
+
+    document.body.classList.add("dark");
+
+}
+
+
+/* ================= UTILITIES ================= */
+
+function calculateDaysLeft(dateString) {
+
+    const today =
+        new Date();
+
+    today.setHours(0,0,0,0);
+
+
+    const exam =
+        new Date(dateString);
+
+    exam.setHours(0,0,0,0);
+
+
+    return Math.ceil(
+        (exam - today) /
+        86400000
+    );
+
+}
+
+
+function formatDate(date) {
+
+    if (!date) return "-";
+
+
+    return new Date(date)
+        .toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        });
+
+}
+
+
+function convertTimeToMinutes(time) {
+
+    const [hours, minutes] =
+        time.split(":")
+            .map(Number);
+
+    return hours * 60 + minutes;
+
+}
+
+
+function minutesToTime(minutes) {
+
+    minutes =
+        minutes % (24 * 60);
+
+
+    const hours =
+        Math.floor(minutes / 60);
+
+    const mins =
+        minutes % 60;
+
+
+    return `${String(hours).padStart(2,"0")}:${String(mins).padStart(2,"0")}`;
+
+}
+
+
+function showToast(message) {
+
+    const toast =
+        document.getElementById("toast");
+
+
+    toast.textContent =
+        message;
+
+
+    toast.classList.add("show");
+
+
+    setTimeout(() => {
+
+        toast.classList.remove("show");
+
+    }, 2500);
+
+}
+
+
+function escapeHTML(text) {
+
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+
+/* ================= RENDER EVERYTHING ================= */
+
+function renderEverything() {
+
+    renderDashboard();
+
+    renderSubjects();
+
+    renderPlanner();
+
+    renderTasks();
+
+    renderNotes();
+
+    renderExams();
+
+    renderProfile();
+
+    renderStudentDatabase();
+
+}
+
+
+/* ================= NOTIFICATION ================= */
+
+function updateNotifications() {
+
+    let count = 0;
+
+
+    count += currentUser.tasks
+        .filter(t => !t.completed)
+        .length;
+
+
+    count += currentUser.exams
+        .filter(
+            e =>
+                calculateDaysLeft(e.date) <= 7 &&
+                calculateDaysLeft(e.date) >= 0
+        )
+        .length;
+
+
+    document.getElementById(
+        "notificationCount"
+    ).textContent =
+        count;
+
+}
+
+
+setInterval(() => {
+
+    if (currentUser) {
+
+        updateNotifications();
+
+        renderNextExam();
+
+    }
+
+}, 60000);
