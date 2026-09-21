@@ -1,1782 +1,567 @@
-/* =========================================
-   ONLINE STUDY PLANNER APP
-   Complete CSS
-   ========================================= */
-
-/* ---------- RESET ---------- */
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-:root {
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --secondary: #8b5cf6;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-
-    --bg: #f5f7fb;
-    --card: #ffffff;
-    --text: #1f2937;
-    --text-light: #6b7280;
-    --border: #e5e7eb;
-
-    --sidebar-width: 250px;
-    --header-height: 70px;
-
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.08);
-
-    --radius: 12px;
-}
-
-/* ---------- DARK MODE ---------- */
-
-body.dark-mode {
-    --bg: #111827;
-    --card: #1f2937;
-    --text: #f9fafb;
-    --text-light: #9ca3af;
-    --border: #374151;
-
-    background: var(--bg);
-    color: var(--text);
-}
-
-/* ---------- BODY ---------- */
-
-body {
-    font-family: "Segoe UI", Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
-    transition: background 0.3s ease, color 0.3s ease;
-}
-
-button,
-input,
-textarea,
-select {
-    font-family: inherit;
-}
-
-button {
-    cursor: pointer;
-}
-
-a {
-    color: inherit;
-    text-decoration: none;
-}
-
-/* =========================================
-   APP LAYOUT
-   ========================================= */
-
-.app {
-    display: flex;
-    min-height: 100vh;
-}
-
-/* =========================================
-   SIDEBAR
-   ========================================= */
-
-.sidebar {
-    width: var(--sidebar-width);
-    height: 100vh;
-    position: fixed;
-    left: 0;
-    top: 0;
-
-    background: var(--card);
-    border-right: 1px solid var(--border);
-
-    display: flex;
-    flex-direction: column;
-
-    z-index: 1000;
-    transition: transform 0.3s ease;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow - Online Study Planner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="logo">
+        <span>📚</span>
+        <h2>StudyFlow</h2>
+    </div>
+
+    <nav>
+        <button class="nav-item active" data-page="dashboard">🏠 Dashboard</button>
+        <button class="nav-item" data-page="tasks">✅ Tasks</button>
+        <button class="nav-item" data-page="subjects">📚 Subjects</button>
+        <button class="nav-item" data-page="timetable">🗓️ Timetable</button>
+        <button class="nav-item" data-page="exams">📝 Exams</button>
+        <button class="nav-item" data-page="goals">🎯 Goals</button>
+        <button class="nav-item" data-page="timer">⏱️ Focus Timer</button>
+        <button class="nav-item" data-page="notes">📝 Notes</button>
+        <button class="nav-item" data-page="progress">📊 Progress</button>
+    </nav>
+
+    <div class="sidebar-bottom">
+        <button id="themeToggle">🌙 Dark Mode</button>
+        <button id="clearData">🗑️ Reset Data</button>
+    </div>
+</aside>
+
+
+<!-- MAIN -->
+<main class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <div>
+            <p class="small-text">Welcome back 👋</p>
+            <h1 id="pageTitle">Dashboard</h1>
+        </div>
+
+        <div class="top-actions">
+            <input type="text" id="globalSearch" placeholder="Search...">
+            <button id="mobileMenu">☰</button>
+        </div>
+    </header>
+
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="page active-page">
+
+        <div class="welcome-card">
+            <div>
+                <p>Stay consistent. Stay focused.</p>
+                <h2>Plan your study. Build your future.</h2>
+                <p id="currentDate"></p>
+            </div>
+            <div class="welcome-icon">🎓</div>
+        </div>
+
+        <div class="stats-grid">
+
+            <div class="stat-card">
+                <span>📚</span>
+                <div>
+                    <p>Subjects</p>
+                    <h2 id="statSubjects">0</h2>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <span>✅</span>
+                <div>
+                    <p>Tasks</p>
+                    <h2 id="statTasks">0</h2>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <span>🏆</span>
+                <div>
+                    <p>Completed</p>
+                    <h2 id="statCompleted">0</h2>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <span>⏱️</span>
+                <div>
+                    <p>Study Hours</p>
+                    <h2 id="statHours">0</h2>
+                </div>
+            </div>
+
+        </div>
 
-/* Logo */
+        <div class="dashboard-grid">
 
-.logo {
-    height: var(--header-height);
+            <div class="card">
+                <div class="card-header">
+                    <h3>Today's Tasks</h3>
+                    <button class="small-btn" onclick="showPage('tasks')">
+                        View All
+                    </button>
+                </div>
 
-    display: flex;
-    align-items: center;
-    gap: 10px;
+                <div id="todayTasks"></div>
+            </div>
 
-    padding: 0 22px;
+            <div class="card">
+                <div class="card-header">
+                    <h3>Overall Progress</h3>
+                </div>
 
-    font-size: 21px;
-    font-weight: 700;
-    color: var(--primary);
+                <div class="progress-circle">
+                    <div id="progressCircle">0%</div>
+                </div>
 
-    border-bottom: 1px solid var(--border);
-}
+                <p class="center-text">Study Completion</p>
+            </div>
 
-.logo-icon {
-    width: 36px;
-    height: 36px;
+        </div>
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+        <div class="card">
+            <div class="card-header">
+                <h3>Upcoming Exams</h3>
+                <button class="small-btn" onclick="showPage('exams')">
+                    Manage
+                </button>
+            </div>
 
-    border-radius: 10px;
+            <div id="dashboardExams"></div>
+        </div>
 
-    background: linear-gradient(
-        135deg,
-        var(--primary),
-        var(--secondary)
-    );
+    </section>
 
-    color: white;
-    font-size: 18px;
-}
 
-/* Navigation */
+    <!-- TASKS -->
+    <section id="tasks" class="page">
 
-.nav-menu {
-    list-style: none;
-    padding: 20px 12px;
-}
+        <div class="section-header">
+            <div>
+                <h2>Study Tasks</h2>
+                <p>Manage your daily study activities.</p>
+            </div>
 
-.nav-menu li {
-    margin-bottom: 6px;
-}
+            <button class="primary-btn" onclick="openModal('taskModal')">
+                + Add Task
+            </button>
+        </div>
 
-.nav-link {
-    width: 100%;
+        <div class="filter-bar">
+            <select id="taskFilter">
+                <option value="all">All Tasks</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+                <option value="today">Today</option>
+            </select>
 
-    display: flex;
-    align-items: center;
-    gap: 13px;
+            <select id="priorityFilter">
+                <option value="all">All Priorities</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+            </select>
+        </div>
 
-    padding: 12px 14px;
+        <div class="card">
+            <div id="taskList"></div>
+        </div>
 
-    border-radius: 9px;
+    </section>
 
-    color: var(--text-light);
 
-    transition: all 0.2s ease;
-}
+    <!-- SUBJECTS -->
+    <section id="subjects" class="page">
 
-.nav-link:hover {
-    background: rgba(99, 102, 241, 0.08);
-    color: var(--primary);
-}
+        <div class="section-header">
+            <div>
+                <h2>Subjects</h2>
+                <p>Organize your academic subjects.</p>
+            </div>
 
-.nav-link.active {
-    background: var(--primary);
-    color: white;
-}
+            <button class="primary-btn" onclick="openModal('subjectModal')">
+                + Add Subject
+            </button>
+        </div>
 
-.nav-icon {
-    width: 22px;
-    text-align: center;
-    font-size: 18px;
-}
+        <div id="subjectList" class="subject-grid"></div>
 
-/* Sidebar bottom */
+    </section>
 
-.sidebar-bottom {
-    margin-top: auto;
-    padding: 15px;
-    border-top: 1px solid var(--border);
-}
 
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+    <!-- TIMETABLE -->
+    <section id="timetable" class="page">
 
-.user-avatar {
-    width: 40px;
-    height: 40px;
+        <div class="section-header">
+            <div>
+                <h2>Weekly Timetable</h2>
+                <p>Create your weekly study schedule.</p>
+            </div>
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+            <button class="primary-btn" onclick="openModal('scheduleModal')">
+                + Add Schedule
+            </button>
+        </div>
 
-    border-radius: 50%;
+        <div class="timetable-container">
+            <div id="timetableGrid" class="timetable-grid"></div>
+        </div>
 
-    background: linear-gradient(
-        135deg,
-        var(--primary),
-        var(--secondary)
-    );
+    </section>
 
-    color: white;
-    font-weight: 700;
-}
 
-.user-info {
-    overflow: hidden;
-}
+    <!-- EXAMS -->
+    <section id="exams" class="page">
 
-.user-name {
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+        <div class="section-header">
+            <div>
+                <h2>Exams</h2>
+                <p>Never miss an important exam.</p>
+            </div>
 
-.user-email {
-    color: var(--text-light);
-    font-size: 12px;
+            <button class="primary-btn" onclick="openModal('examModal')">
+                + Add Exam
+            </button>
+        </div>
 
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+        <div id="examList" class="exam-grid"></div>
 
-/* =========================================
-   MAIN CONTENT
-   ========================================= */
+    </section>
 
-.main {
-    margin-left: var(--sidebar-width);
-    width: calc(100% - var(--sidebar-width));
-    min-height: 100vh;
-}
 
-/* =========================================
-   HEADER
-   ========================================= */
+    <!-- GOALS -->
+    <section id="goals" class="page">
 
-.header {
-    height: var(--header-height);
+        <div class="section-header">
+            <div>
+                <h2>Study Goals</h2>
+                <p>Set targets and track your achievements.</p>
+            </div>
 
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+            <button class="primary-btn" onclick="openModal('goalModal')">
+                + Add Goal
+            </button>
+        </div>
 
-    padding: 0 28px;
+        <div id="goalList" class="goal-grid"></div>
 
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
+    </section>
 
-    position: sticky;
-    top: 0;
-    z-index: 900;
-}
 
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
+    <!-- TIMER -->
+    <section id="timer" class="page">
 
-.page-title {
-    font-size: 22px;
-    font-weight: 700;
-}
+        <div class="timer-container">
 
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
+            <div class="card timer-card">
 
-/* Header buttons */
+                <p class="small-text">FOCUS SESSION</p>
 
-.icon-button {
-    width: 40px;
-    height: 40px;
+                <h2 id="timerMode">Pomodoro</h2>
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+                <div id="timerDisplay">25:00</div>
 
-    border: none;
-    border-radius: 9px;
+                <div class="timer-buttons">
+                    <button class="primary-btn" id="startTimer">
+                        ▶ Start
+                    </button>
 
-    background: transparent;
-    color: var(--text-light);
+                    <button class="secondary-btn" id="pauseTimer">
+                        ⏸ Pause
+                    </button>
 
-    font-size: 18px;
+                    <button class="secondary-btn" id="resetTimer">
+                        ↻ Reset
+                    </button>
+                </div>
 
-    transition: all 0.2s ease;
-}
+                <div class="timer-presets">
+                    <button onclick="setTimer(25)">25 min</button>
+                    <button onclick="setTimer(50)">50 min</button>
+                    <button onclick="setTimer(5)">5 min</button>
+                </div>
 
-.icon-button:hover {
-    background: var(--bg);
-    color: var(--primary);
-}
+            </div>
 
-/* Mobile menu */
+        </div>
 
-.menu-toggle {
-    display: none;
-}
+    </section>
 
-/* =========================================
-   CONTENT
-   ========================================= */
 
-.content {
-    padding: 28px;
-    max-width: 1600px;
-    margin: auto;
-}
+    <!-- NOTES -->
+    <section id="notes" class="page">
 
-/* =========================================
-   WELCOME SECTION
-   ========================================= */
+        <div class="section-header">
+            <div>
+                <h2>Study Notes</h2>
+                <p>Keep important information in one place.</p>
+            </div>
 
-.welcome {
-    margin-bottom: 25px;
-}
+            <button class="primary-btn" onclick="openModal('noteModal')">
+                + Add Note
+            </button>
+        </div>
 
-.welcome h1 {
-    font-size: 28px;
-    margin-bottom: 4px;
-}
+        <div id="noteList" class="note-grid"></div>
 
-.welcome p {
-    color: var(--text-light);
-}
+    </section>
 
-/* =========================================
-   BUTTONS
-   ========================================= */
 
-.btn {
-    border: none;
+    <!-- PROGRESS -->
+    <section id="progress" class="page">
 
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+        <div class="section-header">
+            <div>
+                <h2>Study Progress</h2>
+                <p>See how consistently you're studying.</p>
+            </div>
+        </div>
 
-    padding: 10px 17px;
+        <div class="progress-grid">
 
-    border-radius: 9px;
+            <div class="card">
+                <h3>Task Completion</h3>
 
-    font-size: 14px;
-    font-weight: 600;
+                <div class="large-progress">
+                    <div id="taskProgressBar"></div>
+                </div>
 
-    transition: all 0.2s ease;
-}
+                <h2 id="taskProgressText">0%</h2>
+            </div>
 
-.btn-primary {
-    background: var(--primary);
-    color: white;
-}
+            <div class="card">
+                <h3>Study Time</h3>
 
-.btn-primary:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
-}
+                <div class="study-time">
+                    <span>⏱️</span>
+                    <strong id="totalStudyTime">0</strong>
+                    <p>minutes</p>
+                </div>
+            </div>
 
-.btn-secondary {
-    background: var(--bg);
-    color: var(--text);
-}
+        </div>
 
-.btn-secondary:hover {
-    background: var(--border);
-}
+    </section>
 
-.btn-success {
-    background: var(--success);
-    color: white;
-}
+</main>
 
-.btn-danger {
-    background: var(--danger);
-    color: white;
-}
 
-.btn-warning {
-    background: var(--warning);
-    color: white;
-}
+<!-- TASK MODAL -->
+<div class="modal" id="taskModal">
+    <div class="modal-content">
 
-/* =========================================
-   DASHBOARD GRID
-   ========================================= */
+        <div class="modal-header">
+            <h2>Add Study Task</h2>
+            <button onclick="closeModal('taskModal')">×</button>
+        </div>
 
-.stats-grid {
-    display: grid;
+        <form id="taskForm">
 
-    grid-template-columns:
-        repeat(4, minmax(0, 1fr));
+            <label>Task Name</label>
+            <input id="taskName" required placeholder="Example: Revise Calculus">
 
-    gap: 18px;
+            <label>Subject</label>
+            <input id="taskSubject" required placeholder="Example: Mathematics">
 
-    margin-bottom: 25px;
-}
+            <label>Date</label>
+            <input type="date" id="taskDate" required>
 
-/* =========================================
-   STAT CARD
-   ========================================= */
+            <label>Duration (minutes)</label>
+            <input type="number" id="taskDuration" min="5" value="30">
 
-.stat-card {
-    background: var(--card);
+            <label>Priority</label>
+            <select id="taskPriority">
+                <option>High</option>
+                <option selected>Medium</option>
+                <option>Low</option>
+            </select>
 
-    border: 1px solid var(--border);
+            <button class="primary-btn full" type="submit">
+                Add Task
+            </button>
 
-    border-radius: var(--radius);
+        </form>
 
-    padding: 20px;
+    </div>
+</div>
 
-    box-shadow: var(--shadow-sm);
 
-    transition: transform 0.2s ease,
-                box-shadow 0.2s ease;
-}
+<!-- SUBJECT MODAL -->
+<div class="modal" id="subjectModal">
 
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
+    <div class="modal-content">
 
-.stat-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+        <div class="modal-header">
+            <h2>Add Subject</h2>
+            <button onclick="closeModal('subjectModal')">×</button>
+        </div>
 
-    margin-bottom: 15px;
-}
+        <form id="subjectForm">
 
-.stat-icon {
-    width: 45px;
-    height: 45px;
+            <label>Subject Name</label>
+            <input id="subjectName" required placeholder="Example: Computer Networks">
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+            <label>Teacher</label>
+            <input id="subjectTeacher" placeholder="Teacher name">
 
-    border-radius: 10px;
+            <label>Color</label>
+            <input type="color" id="subjectColor" value="#4f46e5">
 
-    font-size: 20px;
-}
+            <button class="primary-btn full">
+                Add Subject
+            </button>
 
-.stat-icon.blue {
-    color: #3b82f6;
-    background: #dbeafe;
-}
+        </form>
 
-.stat-icon.green {
-    color: #059669;
-    background: #d1fae5;
-}
+    </div>
+</div>
 
-.stat-icon.orange {
-    color: #d97706;
-    background: #fef3c7;
-}
 
-.stat-icon.purple {
-    color: #7c3aed;
-    background: #ede9fe;
-}
+<!-- SCHEDULE MODAL -->
+<div class="modal" id="scheduleModal">
 
-.stat-number {
-    font-size: 28px;
-    font-weight: 700;
-}
+    <div class="modal-content">
 
-.stat-label {
-    color: var(--text-light);
-    font-size: 13px;
-}
+        <div class="modal-header">
+            <h2>Add Schedule</h2>
+            <button onclick="closeModal('scheduleModal')">×</button>
+        </div>
 
-/* =========================================
-   DASHBOARD COLUMNS
-   ========================================= */
+        <form id="scheduleForm">
 
-.dashboard-grid {
-    display: grid;
+            <label>Day</label>
 
-    grid-template-columns:
-        minmax(0, 2fr)
-        minmax(300px, 1fr);
+            <select id="scheduleDay">
+                <option>Monday</option>
+                <option>Tuesday</option>
+                <option>Wednesday</option>
+                <option>Thursday</option>
+                <option>Friday</option>
+                <option>Saturday</option>
+                <option>Sunday</option>
+            </select>
 
-    gap: 22px;
-}
+            <label>Subject / Activity</label>
+            <input id="scheduleSubject" required>
 
-/* =========================================
-   CARD
-   ========================================= */
+            <label>Start Time</label>
+            <input type="time" id="scheduleStart" required>
 
-.card {
-    background: var(--card);
+            <label>End Time</label>
+            <input type="time" id="scheduleEnd" required>
 
-    border: 1px solid var(--border);
+            <button class="primary-btn full">
+                Add Schedule
+            </button>
 
-    border-radius: var(--radius);
+        </form>
 
-    box-shadow: var(--shadow-sm);
+    </div>
+</div>
 
-    padding: 20px;
-}
 
-.card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+<!-- EXAM MODAL -->
+<div class="modal" id="examModal">
 
-    margin-bottom: 18px;
-}
+    <div class="modal-content">
 
-.card-title {
-    font-size: 17px;
-    font-weight: 700;
-}
+        <div class="modal-header">
+            <h2>Add Exam</h2>
+            <button onclick="closeModal('examModal')">×</button>
+        </div>
 
-/* =========================================
-   TASK LIST
-   ========================================= */
+        <form id="examForm">
 
-.task-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
+            <label>Exam Name</label>
+            <input id="examName" required placeholder="Example: Mathematics">
 
-.task-item {
-    display: flex;
-    align-items: center;
-    gap: 13px;
+            <label>Date</label>
+            <input type="date" id="examDate" required>
 
-    padding: 14px;
+            <label>Time</label>
+            <input type="time" id="examTime">
 
-    border: 1px solid var(--border);
-    border-radius: 10px;
+            <label>Room</label>
+            <input id="examRoom" placeholder="Room number">
 
-    transition: background 0.2s ease;
-}
+            <button class="primary-btn full">
+                Add Exam
+            </button>
 
-.task-item:hover {
-    background: var(--bg);
-}
+        </form>
 
-.task-checkbox {
-    width: 19px;
-    height: 19px;
+    </div>
+</div>
 
-    accent-color: var(--primary);
 
-    cursor: pointer;
-}
+<!-- GOAL MODAL -->
+<div class="modal" id="goalModal">
 
-.task-details {
-    flex: 1;
-    min-width: 0;
-}
+    <div class="modal-content">
 
-.task-title {
-    font-weight: 600;
+        <div class="modal-header">
+            <h2>Add Goal</h2>
+            <button onclick="closeModal('goalModal')">×</button>
+        </div>
 
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+        <form id="goalForm">
 
-.task-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+            <label>Goal</label>
+            <input id="goalName" required placeholder="Example: Complete Java Unit 3">
 
-    margin-top: 3px;
+            <label>Target</label>
+            <input type="number" id="goalTarget" min="1" value="10">
 
-    font-size: 12px;
-    color: var(--text-light);
-}
+            <label>Unit</label>
+            <input id="goalUnit" value="hours">
 
-.task-completed .task-title {
-    text-decoration: line-through;
-    color: var(--text-light);
-}
+            <button class="primary-btn full">
+                Add Goal
+            </button>
 
-.task-actions {
-    display: flex;
-    gap: 5px;
-}
+        </form>
 
-/* =========================================
-   BADGES
-   ========================================= */
+    </div>
+</div>
 
-.badge {
-    display: inline-flex;
-    align-items: center;
 
-    padding: 4px 9px;
+<!-- NOTE MODAL -->
+<div class="modal" id="noteModal">
 
-    border-radius: 20px;
+    <div class="modal-content">
 
-    font-size: 11px;
-    font-weight: 600;
-}
+        <div class="modal-header">
+            <h2>Add Note</h2>
+            <button onclick="closeModal('noteModal')">×</button>
+        </div>
 
-.badge-primary {
-    color: #4338ca;
-    background: #e0e7ff;
-}
+        <form id="noteForm">
 
-.badge-success {
-    color: #047857;
-    background: #d1fae5;
-}
+            <label>Title</label>
+            <input id="noteTitle" required placeholder="Note title">
 
-.badge-warning {
-    color: #b45309;
-    background: #fef3c7;
-}
+            <label>Content</label>
+            <textarea id="noteContent" rows="6" required></textarea>
 
-.badge-danger {
-    color: #b91c1c;
-    background: #fee2e2;
-}
+            <button class="primary-btn full">
+                Save Note
+            </button>
 
-/* =========================================
-   PROGRESS
-   ========================================= */
+        </form>
 
-.progress-container {
-    margin-top: 10px;
-}
+    </div>
+</div>
 
-.progress-info {
-    display: flex;
-    justify-content: space-between;
 
-    margin-bottom: 6px;
+<script src="script.js"></script>
 
-    font-size: 12px;
-    color: var(--text-light);
-}
-
-.progress-bar {
-    width: 100%;
-    height: 8px;
-
-    background: var(--border);
-
-    border-radius: 20px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-
-    background: linear-gradient(
-        90deg,
-        var(--primary),
-        var(--secondary)
-    );
-
-    border-radius: inherit;
-
-    transition: width 0.5s ease;
-}
-
-/* =========================================
-   SUBJECT CARDS
-   ========================================= */
-
-.subject-grid {
-    display: grid;
-
-    grid-template-columns:
-        repeat(2, minmax(0, 1fr));
-
-    gap: 12px;
-}
-
-.subject-card {
-    padding: 15px;
-
-    border: 1px solid var(--border);
-
-    border-radius: 10px;
-}
-
-.subject-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    margin-bottom: 10px;
-}
-
-.subject-color {
-    width: 12px;
-    height: 12px;
-
-    border-radius: 50%;
-}
-
-.subject-name {
-    font-weight: 600;
-    flex: 1;
-}
-
-.subject-hours {
-    color: var(--text-light);
-    font-size: 12px;
-}
-
-/* =========================================
-   CALENDAR
-   ========================================= */
-
-.calendar {
-    width: 100%;
-}
-
-.calendar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    margin-bottom: 18px;
-}
-
-.calendar-title {
-    font-weight: 700;
-}
-
-.calendar-controls {
-    display: flex;
-    gap: 5px;
-}
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
-}
-
-.calendar-day-name {
-    text-align: center;
-
-    padding: 8px 2px;
-
-    font-size: 12px;
-    font-weight: 600;
-
-    color: var(--text-light);
-}
-
-.calendar-day {
-    min-height: 42px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 8px;
-
-    font-size: 13px;
-
-    cursor: pointer;
-
-    transition: all 0.2s ease;
-}
-
-.calendar-day:hover {
-    background: var(--bg);
-}
-
-.calendar-day.today {
-    background: var(--primary);
-    color: white;
-    font-weight: 700;
-}
-
-.calendar-day.has-task {
-    position: relative;
-}
-
-.calendar-day.has-task::after {
-    content: "";
-
-    position: absolute;
-
-    bottom: 4px;
-
-    width: 5px;
-    height: 5px;
-
-    border-radius: 50%;
-
-    background: var(--warning);
-}
-
-/* =========================================
-   MODAL
-   ========================================= */
-
-.modal-overlay {
-    position: fixed;
-
-    inset: 0;
-
-    background: rgba(0, 0, 0, 0.55);
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    padding: 20px;
-
-    z-index: 2000;
-
-    opacity: 0;
-    visibility: hidden;
-
-    transition: all 0.25s ease;
-}
-
-.modal-overlay.active {
-    opacity: 1;
-    visibility: visible;
-}
-
-.modal {
-    width: 100%;
-    max-width: 550px;
-
-    max-height: 90vh;
-    overflow-y: auto;
-
-    background: var(--card);
-
-    border-radius: 15px;
-
-    padding: 25px;
-
-    transform: translateY(15px);
-    transition: transform 0.25s ease;
-}
-
-.modal-overlay.active .modal {
-    transform: translateY(0);
-}
-
-.modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    margin-bottom: 22px;
-}
-
-.modal-title {
-    font-size: 20px;
-    font-weight: 700;
-}
-
-.modal-close {
-    width: 35px;
-    height: 35px;
-
-    border: none;
-
-    border-radius: 8px;
-
-    background: var(--bg);
-    color: var(--text-light);
-
-    font-size: 20px;
-}
-
-/* =========================================
-   FORMS
-   ========================================= */
-
-.form-group {
-    margin-bottom: 17px;
-}
-
-.form-label {
-    display: block;
-
-    margin-bottom: 7px;
-
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.form-control {
-    width: 100%;
-
-    padding: 11px 13px;
-
-    border: 1px solid var(--border);
-
-    border-radius: 8px;
-
-    outline: none;
-
-    background: var(--card);
-    color: var(--text);
-
-    transition: border-color 0.2s ease,
-                box-shadow 0.2s ease;
-}
-
-.form-control:focus {
-    border-color: var(--primary);
-
-    box-shadow:
-        0 0 0 3px rgba(99, 102, 241, 0.12);
-}
-
-textarea.form-control {
-    resize: vertical;
-    min-height: 100px;
-}
-
-.form-row {
-    display: grid;
-
-    grid-template-columns: repeat(2, 1fr);
-
-    gap: 14px;
-}
-
-.modal-footer {
-    display: flex;
-    justify-content: flex-end;
-
-    gap: 10px;
-
-    margin-top: 22px;
-}
-
-/* =========================================
-   FILTER / SEARCH
-   ========================================= */
-
-.toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    gap: 15px;
-
-    margin-bottom: 20px;
-}
-
-.search-box {
-    position: relative;
-
-    flex: 1;
-    max-width: 350px;
-}
-
-.search-box input {
-    width: 100%;
-
-    padding: 11px 15px 11px 40px;
-
-    border: 1px solid var(--border);
-
-    border-radius: 9px;
-
-    outline: none;
-
-    background: var(--card);
-    color: var(--text);
-}
-
-.search-icon {
-    position: absolute;
-
-    left: 14px;
-    top: 50%;
-
-    transform: translateY(-50%);
-
-    color: var(--text-light);
-}
-
-.filters {
-    display: flex;
-    gap: 8px;
-}
-
-/* =========================================
-   STUDY SESSION
-   ========================================= */
-
-.timer-container {
-    text-align: center;
-
-    padding: 30px 15px;
-}
-
-.timer {
-    font-size: 65px;
-
-    font-weight: 700;
-
-    letter-spacing: 2px;
-
-    margin: 20px 0;
-
-    color: var(--primary);
-}
-
-.timer-controls {
-    display: flex;
-
-    justify-content: center;
-
-    gap: 10px;
-
-    flex-wrap: wrap;
-}
-
-.timer-mode {
-    display: flex;
-
-    justify-content: center;
-
-    gap: 8px;
-
-    margin-bottom: 20px;
-}
-
-.timer-mode button {
-    border: none;
-
-    padding: 8px 14px;
-
-    border-radius: 20px;
-
-    background: var(--bg);
-
-    color: var(--text-light);
-}
-
-.timer-mode button.active {
-    background: var(--primary);
-    color: white;
-}
-
-/* =========================================
-   GOALS
-   ========================================= */
-
-.goal-item {
-    padding: 15px;
-
-    border: 1px solid var(--border);
-
-    border-radius: 10px;
-
-    margin-bottom: 10px;
-}
-
-.goal-header {
-    display: flex;
-    justify-content: space-between;
-
-    margin-bottom: 8px;
-}
-
-.goal-title {
-    font-weight: 600;
-}
-
-.goal-percentage {
-    color: var(--primary);
-
-    font-weight: 700;
-}
-
-/* =========================================
-   EMPTY STATE
-   ========================================= */
-
-.empty-state {
-    text-align: center;
-
-    padding: 45px 20px;
-
-    color: var(--text-light);
-}
-
-.empty-icon {
-    font-size: 45px;
-
-    margin-bottom: 10px;
-
-    opacity: 0.6;
-}
-
-.empty-state h3 {
-    color: var(--text);
-    margin-bottom: 5px;
-}
-
-/* =========================================
-   NOTIFICATION
-   ========================================= */
-
-.notification-container {
-    position: fixed;
-
-    top: 80px;
-    right: 20px;
-
-    z-index: 3000;
-
-    display: flex;
-    flex-direction: column;
-
-    gap: 10px;
-}
-
-.notification {
-    min-width: 280px;
-
-    max-width: 380px;
-
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    padding: 14px 16px;
-
-    background: var(--card);
-
-    border: 1px solid var(--border);
-
-    border-left: 4px solid var(--primary);
-
-    border-radius: 8px;
-
-    box-shadow: var(--shadow-md);
-
-    animation: slideIn 0.3s ease;
-}
-
-.notification.success {
-    border-left-color: var(--success);
-}
-
-.notification.error {
-    border-left-color: var(--danger);
-}
-
-.notification.warning {
-    border-left-color: var(--warning);
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateX(30px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-/* =========================================
-   TABLE
-   ========================================= */
-
-.table-container {
-    width: 100%;
-
-    overflow-x: auto;
-}
-
-table {
-    width: 100%;
-
-    border-collapse: collapse;
-}
-
-th,
-td {
-    padding: 13px 12px;
-
-    text-align: left;
-
-    border-bottom: 1px solid var(--border);
-
-    font-size: 13px;
-}
-
-th {
-    color: var(--text-light);
-
-    font-weight: 600;
-
-    background: var(--bg);
-}
-
-tr:hover td {
-    background: rgba(99, 102, 241, 0.025);
-}
-
-/* =========================================
-   PROFILE / SETTINGS
-   ========================================= */
-
-.settings-section {
-    margin-bottom: 25px;
-}
-
-.settings-section h3 {
-    margin-bottom: 15px;
-}
-
-.setting-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    padding: 15px 0;
-
-    border-bottom: 1px solid var(--border);
-}
-
-.setting-info h4 {
-    font-size: 14px;
-}
-
-.setting-info p {
-    color: var(--text-light);
-    font-size: 12px;
-}
-
-/* =========================================
-   TOGGLE SWITCH
-   ========================================= */
-
-.switch {
-    position: relative;
-
-    width: 48px;
-    height: 25px;
-
-    display: inline-block;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-
-    inset: 0;
-
-    background: #d1d5db;
-
-    border-radius: 30px;
-
-    cursor: pointer;
-
-    transition: 0.3s;
-}
-
-.slider::before {
-    content: "";
-
-    position: absolute;
-
-    width: 19px;
-    height: 19px;
-
-    left: 3px;
-    top: 3px;
-
-    background: white;
-
-    border-radius: 50%;
-
-    transition: 0.3s;
-}
-
-.switch input:checked + .slider {
-    background: var(--primary);
-}
-
-.switch input:checked + .slider::before {
-    transform: translateX(23px);
-}
-
-/* =========================================
-   POMODORO
-   ========================================= */
-
-.pomodoro-circle {
-    width: 220px;
-    height: 220px;
-
-    margin: 20px auto;
-
-    border-radius: 50%;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background:
-        conic-gradient(
-            var(--primary) 0deg,
-            var(--primary) 260deg,
-            var(--border) 260deg
-        );
-
-    position: relative;
-}
-
-.pomodoro-circle::before {
-    content: "";
-
-    position: absolute;
-
-    width: 190px;
-    height: 190px;
-
-    background: var(--card);
-
-    border-radius: 50%;
-}
-
-.pomodoro-time {
-    position: relative;
-
-    z-index: 1;
-
-    font-size: 40px;
-
-    font-weight: 700;
-
-    color: var(--primary);
-}
-
-/* =========================================
-   WEEKLY CHART
-   ========================================= */
-
-.chart {
-    height: 250px;
-
-    display: flex;
-    align-items: flex-end;
-
-    gap: 15px;
-
-    padding: 20px 10px;
-}
-
-.chart-bar-container {
-    flex: 1;
-
-    height: 100%;
-
-    display: flex;
-    flex-direction: column;
-
-    justify-content: flex-end;
-
-    align-items: center;
-
-    gap: 8px;
-}
-
-.chart-bar {
-    width: 100%;
-
-    max-width: 45px;
-
-    min-height: 4px;
-
-    border-radius: 6px 6px 0 0;
-
-    background: linear-gradient(
-        to top,
-        var(--primary),
-        var(--secondary)
-    );
-
-    transition: height 0.5s ease;
-}
-
-.chart-label {
-    font-size: 11px;
-
-    color: var(--text-light);
-}
-
-/* =========================================
-   RESPONSIVE TABLET
-   ========================================= */
-
-@media (max-width: 1100px) {
-
-    .stats-grid {
-        grid-template-columns:
-            repeat(2, 1fr);
-    }
-
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* =========================================
-   RESPONSIVE MOBILE
-   ========================================= */
-
-@media (max-width: 768px) {
-
-    :root {
-        --sidebar-width: 250px;
-    }
-
-    /* Sidebar */
-
-    .sidebar {
-        transform: translateX(-100%);
-    }
-
-    .sidebar.open {
-        transform: translateX(0);
-    }
-
-    /* Main */
-
-    .main {
-        margin-left: 0;
-        width: 100%;
-    }
-
-    /* Header */
-
-    .header {
-        padding: 0 16px;
-    }
-
-    .menu-toggle {
-        display: flex;
-    }
-
-    .page-title {
-        font-size: 18px;
-    }
-
-    /* Content */
-
-    .content {
-        padding: 18px 15px;
-    }
-
-    /* Stats */
-
-    .stats-grid {
-        grid-template-columns:
-            repeat(2, 1fr);
-
-        gap: 12px;
-    }
-
-    .stat-card {
-        padding: 15px;
-    }
-
-    .stat-number {
-        font-size: 23px;
-    }
-
-    /* Toolbar */
-
-    .toolbar {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .search-box {
-        max-width: none;
-    }
-
-    .filters {
-        overflow-x: auto;
-    }
-
-    /* Subject */
-
-    .subject-grid {
-        grid-template-columns: 1fr;
-    }
-
-    /* Forms */
-
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-
-    /* Timer */
-
-    .timer {
-        font-size: 50px;
-    }
-
-    /* Calendar */
-
-    .calendar-day {
-        min-height: 36px;
-    }
-}
-
-/* =========================================
-   SMALL MOBILE
-   ========================================= */
-
-@media (max-width: 480px) {
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .header-right {
-        gap: 3px;
-    }
-
-    .welcome h1 {
-        font-size: 23px;
-    }
-
-    .card {
-        padding: 15px;
-    }
-
-    .task-item {
-        padding: 11px;
-    }
-
-    .task-actions {
-        flex-direction: column;
-    }
-
-    .timer {
-        font-size: 42px;
-    }
-
-    .pomodoro-circle {
-        width: 190px;
-        height: 190px;
-    }
-
-    .pomodoro-circle::before {
-        width: 165px;
-        height: 165px;
-    }
-
-    .pomodoro-time {
-        font-size: 32px;
-    }
-
-    .modal {
-        padding: 18px;
-    }
-}
-
-/* =========================================
-   SIDEBAR OVERLAY
-   ========================================= */
-
-.sidebar-overlay {
-    display: none;
-
-    position: fixed;
-
-    inset: 0;
-
-    background: rgba(0, 0, 0, 0.4);
-
-    z-index: 999;
-}
-
-@media (max-width: 768px) {
-
-    .sidebar-overlay.active {
-        display: block;
-    }
-}
-
-/* =========================================
-   SCROLLBAR
-   ========================================= */
-
-::-webkit-scrollbar {
-    width: 7px;
-    height: 7px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #c7cbd4;
-
-    border-radius: 10px;
-}
-
-body.dark-mode ::-webkit-scrollbar-thumb {
-    background: #4b5563;
-}
-
-/* =========================================
-   UTILITY CLASSES
-   ========================================= */
-
-.hidden {
-    display: none !important;
-}
-
-.text-center {
-    text-align: center;
-}
-
-.text-muted {
-    color: var(--text-light);
-}
-
-.text-primary {
-    color: var(--primary);
-}
-
-.text-success {
-    color: var(--success);
-}
-
-.text-danger {
-    color: var(--danger);
-}
-
-.mt-1 {
-    margin-top: 5px;
-}
-
-.mt-2 {
-    margin-top: 10px;
-}
-
-.mt-3 {
-    margin-top: 15px;
-}
-
-.mb-1 {
-    margin-bottom: 5px;
-}
-
-.mb-2 {
-    margin-bottom: 10px;
-}
-
-.mb-3 {
-    margin-bottom: 15px;
-}
-
-.flex {
-    display: flex;
-}
-
-.flex-between {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.gap-1 {
-    gap: 5px;
-}
-
-.gap-2 {
-    gap: 10px;
-}
-
-.gap-3 {
-    gap: 15px;
-}
-
-/* =========================================
-   ANIMATIONS
-   ========================================= */
-
-.fade-in {
-    animation: fadeIn 0.35s ease;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.scale-in {
-    animation: scaleIn 0.25s ease;
-}
-
-@keyframes scaleIn {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* =========================================
-   PRINT
-   ========================================= */
-
-@media print {
-
-    .sidebar,
-    .header,
-    .btn,
-    .task-actions {
-        display: none !important;
-    }
-
-    .main {
-        margin-left: 0;
-        width: 100%;
-    }
-
-    .content {
-        padding: 0;
-    }
-
-    .card {
-        box-shadow: none;
-        border: 1px solid #ddd;
-    }
-}
+</body>
+</html>
