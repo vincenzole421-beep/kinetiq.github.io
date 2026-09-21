@@ -1,1329 +1,1414 @@
-/* ==========================================
-   STUDYFLOW - STUDY PLANNER
-   ========================================== */
-
-
-/* ---------- DATA ---------- */
-
-let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-let subjects = JSON.parse(localStorage.getItem("subjects")) || [];
-let schedules = JSON.parse(localStorage.getItem("schedules")) || [];
-let exams = JSON.parse(localStorage.getItem("exams")) || [];
-let goals = JSON.parse(localStorage.getItem("goals")) || [];
-let notes = JSON.parse(localStorage.getItem("notes")) || [];
-
-let timerSeconds = 25 * 60;
-let timerInterval = null;
-
-
-/* ---------- HELPERS ---------- */
-
-function saveData() {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-    localStorage.setItem("subjects", JSON.stringify(subjects));
-    localStorage.setItem("schedules", JSON.stringify(schedules));
-    localStorage.setItem("exams", JSON.stringify(exams));
-    localStorage.setItem("goals", JSON.stringify(goals));
-    localStorage.setItem("notes", JSON.stringify(notes));
+```css
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-function generateId() {
-    return Date.now() + Math.floor(Math.random() * 1000);
+:root {
+    --primary: #4f46e5;
+    --primary-dark: #3730a3;
+    --primary-light: #eef2ff;
+
+    --background: #f5f7fb;
+    --card: #ffffff;
+
+    --text: #171717;
+    --muted: #737373;
+
+    --border: #e5e7eb;
+
+    --success: #22c55e;
+    --danger: #ef4444;
+
+    --sidebar: #ffffff;
 }
 
-function today() {
-    return new Date().toISOString().split("T")[0];
+body.dark {
+    --background: #111827;
+    --card: #1f2937;
+
+    --text: #f9fafb;
+    --muted: #9ca3af;
+
+    --border: #374151;
+
+    --sidebar: #111827;
+
+    --primary-light: #312e81;
 }
 
-function formatDate(date) {
+body {
+    font-family: Arial, Helvetica, sans-serif;
 
-    if (!date) return "";
+    background: var(--background);
 
-    return new Date(date + "T00:00:00")
-        .toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
-        });
-}
+    color: var(--text);
 
-function escapeHTML(text) {
-
-    const div = document.createElement("div");
-    div.textContent = text;
-
-    return div.innerHTML;
+    min-height: 100vh;
 }
 
 
-/* ---------- PAGE NAVIGATION ---------- */
+/* =====================================================
+   AUTHENTICATION
+===================================================== */
 
-const navItems = document.querySelectorAll(".nav-item");
+.auth-screen {
 
-navItems.forEach(button => {
+    min-height: 100vh;
 
-    button.addEventListener("click", () => {
+    display: flex;
 
-        const page = button.dataset.page;
+    align-items: center;
 
-        showPage(page);
+    justify-content: center;
 
-        document.querySelector(".sidebar")
-            .classList.remove("open");
-    });
+    padding: 20px;
 
-});
+    background:
+        linear-gradient(
+            135deg,
+            #eef2ff,
+            #f5f3ff,
+            #ffffff
+        );
+}
+
+.auth-card {
+
+    width: 100%;
+
+    max-width: 440px;
+
+    background: white;
+
+    border-radius: 20px;
+
+    padding: 35px;
+
+    box-shadow:
+        0 20px 60px
+        rgba(0,0,0,.12);
+
+}
+
+.auth-logo {
+
+    width: 65px;
+
+    height: 65px;
+
+    display: grid;
+
+    place-items: center;
+
+    background: var(--primary-light);
+
+    border-radius: 18px;
+
+    font-size: 32px;
+
+    margin: auto;
+}
+
+.auth-card > h1 {
+
+    text-align: center;
+
+    margin-top: 15px;
+
+    color: var(--primary);
+}
+
+.auth-subtitle {
+
+    text-align: center;
+
+    color: #737373;
+
+    margin: 8px 0 30px;
+}
+
+.auth-card h2 {
+
+    margin-bottom: 10px;
+}
+
+.form-info {
+
+    color: #737373;
+
+    font-size: 13px;
+
+    margin-bottom: 20px;
+}
+
+.auth-card label {
+
+    display: block;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    margin:
+
+    15px 0 6px;
+}
+
+.auth-card input {
+
+    width: 100%;
+
+    padding: 13px;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 9px;
+
+    outline: none;
+
+    font-size: 15px;
+}
+
+.auth-card input:focus {
+
+    border-color: var(--primary);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(79,70,229,.12);
+}
+
+.password-box {
+
+    position: relative;
+}
+
+.password-box input {
+
+    padding-right: 50px;
+}
+
+.password-toggle {
+
+    position: absolute;
+
+    right: 8px;
+
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    border: none;
+
+    background: transparent;
+
+    cursor: pointer;
+
+    font-size: 18px;
+}
+
+.primary-btn {
+
+    border: none;
+
+    background: var(--primary);
+
+    color: white;
+
+    padding: 12px 18px;
+
+    border-radius: 9px;
+
+    cursor: pointer;
+
+    font-weight: bold;
+
+}
+
+.primary-btn:hover {
+
+    background: var(--primary-dark);
+}
+
+.full {
+
+    width: 100%;
+
+    margin-top: 18px;
+}
+
+.auth-message {
+
+    min-height: 20px;
+
+    margin-top: 12px;
+
+    font-size: 13px;
+
+    text-align: center;
+}
+
+.auth-message.error {
+
+    color: var(--danger);
+}
+
+.auth-message.success {
+
+    color: var(--success);
+}
+
+.switch-auth {
+
+    text-align: center;
+
+    margin-top: 20px;
+
+    color: #737373;
+
+    font-size: 14px;
+}
+
+.switch-auth button {
+
+    border: none;
+
+    background: transparent;
+
+    color: var(--primary);
+
+    cursor: pointer;
+
+    font-weight: bold;
+}
+
+.security-note {
+
+    margin-top: 25px;
+
+    padding: 12px;
+
+    border-radius: 9px;
+
+    background: #f3f4f6;
+
+    color: #4b5563;
+
+    font-size: 12px;
+
+    text-align: center;
+}
+
+.hidden {
+
+    display: none !important;
+}
 
 
-function showPage(pageId) {
+/* =====================================================
+   APPLICATION
+===================================================== */
 
-    document.querySelectorAll(".page").forEach(page => {
-        page.classList.remove("active-page");
-    });
+.app-hidden {
 
-    const page = document.getElementById(pageId);
+    display: none;
+}
 
-    if (page) {
-        page.classList.add("active-page");
-    }
+.sidebar {
 
-    navItems.forEach(button => {
+    width: 250px;
 
-        button.classList.toggle(
-            "active",
-            button.dataset.page === pageId
+    min-height: 100vh;
+
+    background: var(--sidebar);
+
+    border-right: 1px solid var(--border);
+
+    padding: 25px 15px;
+
+    position: fixed;
+
+    left: 0;
+
+    top: 0;
+
+    z-index: 100;
+}
+
+.logo {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 10px;
+
+    margin-bottom: 20px;
+}
+
+.logo span {
+
+    font-size: 28px;
+}
+
+.logo h2 {
+
+    font-size: 21px;
+}
+
+
+/* STUDENT PROFILE */
+
+.student-profile {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 12px;
+
+    background: var(--primary-light);
+
+    border-radius: 12px;
+
+    margin-bottom: 20px;
+}
+
+.student-avatar {
+
+    width: 38px;
+
+    height: 38px;
+
+    border-radius: 50%;
+
+    display: grid;
+
+    place-items: center;
+
+    background: white;
+
+    font-size: 20px;
+}
+
+.student-profile strong {
+
+    display: block;
+
+    font-size: 13px;
+}
+
+.student-profile small {
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+
+nav {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 4px;
+}
+
+.nav-item {
+
+    border: none;
+
+    background: transparent;
+
+    color: var(--text);
+
+    padding: 12px;
+
+    text-align: left;
+
+    border-radius: 9px;
+
+    cursor: pointer;
+
+    font-size: 14px;
+}
+
+.nav-item:hover,
+.nav-item.active {
+
+    background: var(--primary-light);
+
+    color: var(--primary);
+}
+
+
+.sidebar-bottom {
+
+    position: absolute;
+
+    bottom: 20px;
+
+    left: 15px;
+
+    right: 15px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 5px;
+}
+
+.sidebar-bottom button {
+
+    border: none;
+
+    background: transparent;
+
+    color: var(--text);
+
+    padding: 12px;
+
+    text-align: left;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+}
+
+.sidebar-bottom button:hover {
+
+    background: var(--primary-light);
+}
+
+
+/* MAIN */
+
+.main {
+
+    margin-left: 250px;
+
+    width: calc(100% - 250px);
+
+    padding: 25px;
+}
+
+.topbar {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    margin-bottom: 25px;
+}
+
+.topbar h1 {
+
+    font-size: 28px;
+}
+
+.small-text {
+
+    color: var(--muted);
+
+    font-size: 13px;
+}
+
+.top-actions {
+
+    display: flex;
+
+    gap: 10px;
+}
+
+.top-actions input {
+
+    width: 230px;
+
+    padding: 11px 14px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 10px;
+
+    background: var(--card);
+
+    color: var(--text);
+}
+
+#mobileMenu {
+
+    display: none;
+
+    border: 1px solid var(--border);
+
+    background: var(--card);
+
+    color: var(--text);
+
+    padding: 10px;
+
+    border-radius: 8px;
+}
+
+
+/* PAGES */
+
+.page {
+
+    display: none;
+}
+
+.active-page {
+
+    display: block;
+}
+
+
+/* WELCOME */
+
+.welcome-card {
+
+    background:
+        linear-gradient(
+            135deg,
+            #4f46e5,
+            #7c3aed
         );
 
-    });
+    color: white;
 
-    const titles = {
-        dashboard: "Dashboard",
-        tasks: "Study Tasks",
-        subjects: "Subjects",
-        timetable: "Weekly Timetable",
-        exams: "Exams",
-        goals: "Study Goals",
-        timer: "Focus Timer",
-        notes: "Study Notes",
-        progress: "Study Progress"
-    };
+    border-radius: 18px;
 
-    document.getElementById("pageTitle").textContent =
-        titles[pageId] || "Dashboard";
+    padding: 30px;
 
-    updateAll();
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    margin-bottom: 25px;
+}
+
+.welcome-card h2 {
+
+    margin: 10px 0;
+
+    font-size: 25px;
+}
+
+.welcome-icon {
+
+    font-size: 70px;
 }
 
 
-/* ---------- DASHBOARD ---------- */
+/* STATS */
 
-function updateDashboard() {
+.stats-grid {
 
-    document.getElementById("statSubjects").textContent =
-        subjects.length;
+    display: grid;
 
-    document.getElementById("statTasks").textContent =
-        tasks.length;
+    grid-template-columns:
+        repeat(4, 1fr);
 
-    const completed =
-        tasks.filter(task => task.completed).length;
+    gap: 18px;
 
-    document.getElementById("statCompleted").textContent =
-        completed;
+    margin-bottom: 25px;
+}
 
-    const totalMinutes =
-        tasks.reduce((sum, task) => sum + Number(task.duration || 0), 0);
+.stat-card {
 
-    document.getElementById("statHours").textContent =
-        (totalMinutes / 60).toFixed(1);
+    background: var(--card);
 
+    border: 1px solid var(--border);
 
-    /* Progress */
+    border-radius: 14px;
 
-    const progress =
-        tasks.length === 0
-            ? 0
-            : Math.round((completed / tasks.length) * 100);
+    padding: 20px;
 
-    document.getElementById("progressCircle").textContent =
-        progress + "%";
+    display: flex;
 
-    document.querySelector(".progress-circle").style.background =
-        `conic-gradient(
-            var(--primary) ${progress * 3.6}deg,
-            var(--border) ${progress * 3.6}deg
-        )`;
+    align-items: center;
 
+    gap: 15px;
+}
 
-    /* Today's Tasks */
+.stat-card > span {
 
-    const todayTasks =
-        tasks.filter(task => task.date === today());
+    font-size: 28px;
+}
 
-    const todayContainer =
-        document.getElementById("todayTasks");
+.stat-card p {
 
-    if (todayTasks.length === 0) {
+    color: var(--muted);
 
-        todayContainer.innerHTML =
-            `<p class="small-text">No tasks planned for today.</p>`;
+    font-size: 13px;
+}
 
-    } else {
+.stat-card h2 {
 
-        todayContainer.innerHTML =
-            todayTasks.slice(0, 5)
-                .map(taskHTML)
-                .join("");
-
-    }
-
-
-    /* Dashboard Exams */
-
-    const examContainer =
-        document.getElementById("dashboardExams");
-
-    const upcoming =
-        exams
-            .filter(exam => exam.date >= today())
-            .sort((a, b) =>
-                a.date.localeCompare(b.date)
-            )
-            .slice(0, 4);
-
-    if (upcoming.length === 0) {
-
-        examContainer.innerHTML =
-            `<p class="small-text">No upcoming exams.</p>`;
-
-    } else {
-
-        examContainer.innerHTML =
-            upcoming.map(exam => {
-
-                return `
-                    <div class="task-item">
-
-                        <div class="task-info">
-
-                            <h4>
-                                ${escapeHTML(exam.name)}
-                            </h4>
-
-                            <p>
-                                ${formatDate(exam.date)}
-                                ${exam.time ? " • " + exam.time : ""}
-                            </p>
-
-                        </div>
-
-                    </div>
-                `;
-
-            }).join("");
-    }
+    margin-top: 5px;
 }
 
 
-/* ---------- TASKS ---------- */
+/* CARDS */
 
-function taskHTML(task) {
+.card {
 
-    return `
-        <div class="task-item ${task.completed ? "completed" : ""}">
+    background: var(--card);
 
-            <input
-                class="task-checkbox"
-                type="checkbox"
-                ${task.completed ? "checked" : ""}
-                onchange="toggleTask(${task.id})"
-            >
+    border: 1px solid var(--border);
 
-            <div class="task-info">
+    border-radius: 14px;
 
-                <h4>
-                    ${escapeHTML(task.name)}
-                </h4>
+    padding: 20px;
 
-                <p>
-                    ${escapeHTML(task.subject)}
-                    • ${formatDate(task.date)}
-                    • ${task.duration} min
-                </p>
+    margin-bottom: 20px;
+}
 
-            </div>
+.card-header,
+.section-header,
+.modal-header {
 
-            <span class="priority ${task.priority}">
-                ${task.priority}
-            </span>
+    display: flex;
 
-            <button
-                class="delete-btn"
-                onclick="deleteTask(${task.id})"
-            >
-                ×
-            </button>
+    justify-content: space-between;
 
-        </div>
-    `;
+    align-items: center;
+
+    gap: 15px;
+}
+
+.card-header {
+
+    margin-bottom: 18px;
+}
+
+.section-header {
+
+    margin-bottom: 25px;
+}
+
+.section-header h2 {
+
+    font-size: 25px;
+}
+
+.section-header p {
+
+    color: var(--muted);
+
+    margin-top: 5px;
 }
 
 
-function renderTasks() {
+/* DASHBOARD */
 
-    const container =
-        document.getElementById("taskList");
+.dashboard-grid {
 
-    let filtered = [...tasks];
+    display: grid;
 
-    const filter =
-        document.getElementById("taskFilter").value;
+    grid-template-columns: 2fr 1fr;
 
-    const priority =
-        document.getElementById("priorityFilter").value;
-
-
-    if (filter === "pending") {
-
-        filtered =
-            filtered.filter(task => !task.completed);
-
-    }
-
-    if (filter === "completed") {
-
-        filtered =
-            filtered.filter(task => task.completed);
-
-    }
-
-    if (filter === "today") {
-
-        filtered =
-            filtered.filter(task => task.date === today());
-
-    }
-
-    if (priority !== "all") {
-
-        filtered =
-            filtered.filter(task =>
-                task.priority === priority
-            );
-
-    }
-
-
-    if (filtered.length === 0) {
-
-        container.innerHTML =
-            `<p class="small-text">No tasks found.</p>`;
-
-        return;
-    }
-
-
-    filtered.sort((a, b) =>
-        a.date.localeCompare(b.date)
-    );
-
-    container.innerHTML =
-        filtered.map(taskHTML).join("");
+    gap: 20px;
 }
 
+.center-text {
 
-function toggleTask(id) {
+    text-align: center;
 
-    const task =
-        tasks.find(task => task.id === id);
-
-    if (!task) return;
-
-    task.completed = !task.completed;
-
-    saveData();
-
-    updateAll();
+    color: var(--muted);
 }
 
+.progress-circle {
 
-function deleteTask(id) {
+    width: 170px;
 
-    tasks =
-        tasks.filter(task => task.id !== id);
+    height: 170px;
 
-    saveData();
+    margin: 20px auto;
 
-    updateAll();
-}
+    border-radius: 50%;
 
-
-/* ---------- TASK FORM ---------- */
-
-document
-    .getElementById("taskForm")
-    .addEventListener("submit", function(e) {
-
-        e.preventDefault();
-
-        const task = {
-
-            id: generateId(),
-
-            name:
-                document.getElementById("taskName").value.trim(),
-
-            subject:
-                document.getElementById("taskSubject").value.trim(),
-
-            date:
-                document.getElementById("taskDate").value,
-
-            duration:
-                Number(
-                    document.getElementById("taskDuration").value
-                ) || 30,
-
-            priority:
-                document.getElementById("taskPriority").value,
-
-            completed: false
-        };
-
-
-        tasks.push(task);
-
-        saveData();
-
-        this.reset();
-
-        closeModal("taskModal");
-
-        updateAll();
-    });
-
-
-/* ---------- SUBJECTS ---------- */
-
-function renderSubjects() {
-
-    const container =
-        document.getElementById("subjectList");
-
-    if (subjects.length === 0) {
-
-        container.innerHTML =
-            `<p class="small-text">
-                No subjects added yet.
-            </p>`;
-
-        return;
-    }
-
-
-    container.innerHTML =
-        subjects.map(subject => {
-
-            const subjectTasks =
-                tasks.filter(
-                    task =>
-                        task.subject.toLowerCase() ===
-                        subject.name.toLowerCase()
-                );
-
-            const completed =
-                subjectTasks.filter(
-                    task => task.completed
-                ).length;
-
-            return `
-                <div class="subject-card">
-
-                    <div
-                        class="subject-color"
-                        style="background:${subject.color}"
-                    ></div>
-
-                    <h3>
-                        ${escapeHTML(subject.name)}
-                    </h3>
-
-                    <p>
-                        👨‍🏫
-                        ${escapeHTML(
-                            subject.teacher || "No teacher added"
-                        )}
-                    </p>
-
-                    <p>
-                        📚 ${subjectTasks.length} tasks
-                    </p>
-
-                    <p>
-                        ✅ ${completed} completed
-                    </p>
-
-                    <button
-                        class="delete-btn"
-                        onclick="deleteSubject(${subject.id})"
-                    >
-                        Delete
-                    </button>
-
-                </div>
-            `;
-
-        }).join("");
-}
-
-
-document
-    .getElementById("subjectForm")
-    .addEventListener("submit", function(e) {
-
-        e.preventDefault();
-
-        subjects.push({
-
-            id: generateId(),
-
-            name:
-                document.getElementById("subjectName").value.trim(),
-
-            teacher:
-                document.getElementById("subjectTeacher").value.trim(),
-
-            color:
-                document.getElementById("subjectColor").value
-
-        });
-
-        saveData();
-
-        this.reset();
-
-        closeModal("subjectModal");
-
-        updateAll();
-    });
-
-
-function deleteSubject(id) {
-
-    subjects =
-        subjects.filter(subject => subject.id !== id);
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* ---------- TIMETABLE ---------- */
-
-const days = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday"
-];
-
-
-function renderTimetable() {
-
-    const container =
-        document.getElementById("timetableGrid");
-
-    container.innerHTML = days.map(day => {
-
-        const daySchedules =
-            schedules.filter(
-                item => item.day === day
-            );
-
-        return `
-            <div class="day-column">
-
-                <div class="day-header">
-                    ${day}
-                </div>
-
-                ${
-                    daySchedules.length === 0
-                    ?
-                    `<p class="small-text"
-                        style="padding:10px">
-                        No study session
-                    </p>`
-                    :
-                    daySchedules.map(item => {
-
-                        return `
-                            <div class="schedule-item">
-
-                                <strong>
-                                    ${escapeHTML(item.subject)}
-                                </strong>
-
-                                <span>
-                                    ${item.start}
-                                    -
-                                    ${item.end}
-                                </span>
-
-                                <button
-                                    class="delete-btn"
-                                    onclick="deleteSchedule(${item.id})"
-                                >
-                                    ×
-                                </button>
-
-                            </div>
-                        `;
-
-                    }).join("")
-                }
-
-            </div>
-        `;
-
-    }).join("");
-}
-
-
-document
-    .getElementById("scheduleForm")
-    .addEventListener("submit", function(e) {
-
-        e.preventDefault();
-
-        schedules.push({
-
-            id: generateId(),
-
-            day:
-                document.getElementById("scheduleDay").value,
-
-            subject:
-                document.getElementById("scheduleSubject").value.trim(),
-
-            start:
-                document.getElementById("scheduleStart").value,
-
-            end:
-                document.getElementById("scheduleEnd").value
-
-        });
-
-        saveData();
-
-        this.reset();
-
-        closeModal("scheduleModal");
-
-        updateAll();
-    });
-
-
-function deleteSchedule(id) {
-
-    schedules =
-        schedules.filter(item => item.id !== id);
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* ---------- EXAMS ---------- */
-
-function getDaysUntil(date) {
-
-    const exam =
-        new Date(date + "T00:00:00");
-
-    const now =
-        new Date(today() + "T00:00:00");
-
-    return Math.ceil(
-        (exam - now) / 86400000
-    );
-}
-
-
-function renderExams() {
-
-    const container =
-        document.getElementById("examList");
-
-    if (exams.length === 0) {
-
-        container.innerHTML =
-            `<p class="small-text">
-                No exams added.
-            </p>`;
-
-        return;
-    }
-
-
-    const sorted =
-        [...exams].sort(
-            (a, b) =>
-                a.date.localeCompare(b.date)
+    background:
+        conic-gradient(
+            var(--primary) 0deg,
+            var(--border) 0deg
         );
 
+    display: grid;
 
-    container.innerHTML =
-        sorted.map(exam => {
+    place-items: center;
+}
 
-            const daysLeft =
-                getDaysUntil(exam.date);
+.progress-circle div {
 
-            let countdown;
+    width: 125px;
 
-            if (daysLeft < 0) {
+    height: 125px;
 
-                countdown = "Completed";
+    border-radius: 50%;
 
-            } else if (daysLeft === 0) {
+    background: var(--card);
 
-                countdown = "Today";
+    display: grid;
 
-            } else {
+    place-items: center;
 
-                countdown =
-                    `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`;
+    font-size: 25px;
 
-            }
-
-
-            return `
-                <div class="exam-card">
-
-                    <h3>
-                        ${escapeHTML(exam.name)}
-                    </h3>
-
-                    <div class="exam-days">
-                        ${countdown}
-                    </div>
-
-                    <p>
-                        📅 ${formatDate(exam.date)}
-                    </p>
-
-                    <p>
-                        ⏰ ${exam.time || "Time not specified"}
-                    </p>
-
-                    <p>
-                        🏫 ${escapeHTML(
-                            exam.room || "Room not specified"
-                        )}
-                    </p>
-
-                    <button
-                        class="delete-btn"
-                        onclick="deleteExam(${exam.id})"
-                    >
-                        Delete
-                    </button>
-
-                </div>
-            `;
-
-        }).join("");
+    font-weight: bold;
 }
 
 
-document
-    .getElementById("examForm")
-    .addEventListener("submit", function(e) {
+/* BUTTONS */
 
-        e.preventDefault();
+.small-btn,
+.secondary-btn {
 
-        exams.push({
+    border: 1px solid var(--border);
 
-            id: generateId(),
+    background: var(--card);
 
-            name:
-                document.getElementById("examName").value.trim(),
+    color: var(--text);
 
-            date:
-                document.getElementById("examDate").value,
+    padding: 9px 14px;
 
-            time:
-                document.getElementById("examTime").value,
+    border-radius: 8px;
 
-            room:
-                document.getElementById("examRoom").value.trim()
-
-        });
-
-        saveData();
-
-        this.reset();
-
-        closeModal("examModal");
-
-        updateAll();
-    });
-
-
-function deleteExam(id) {
-
-    exams =
-        exams.filter(exam => exam.id !== id);
-
-    saveData();
-
-    updateAll();
+    cursor: pointer;
 }
 
 
-/* ---------- GOALS ---------- */
+/* TASKS */
 
-function renderGoals() {
+.task-item {
 
-    const container =
-        document.getElementById("goalList");
+    display: flex;
 
-    if (goals.length === 0) {
+    align-items: center;
 
-        container.innerHTML =
-            `<p class="small-text">
-                No goals created yet.
-            </p>`;
+    gap: 15px;
 
-        return;
+    padding: 15px 5px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.task-item:last-child {
+
+    border-bottom: none;
+}
+
+.task-checkbox {
+
+    width: 20px;
+
+    height: 20px;
+
+    accent-color: var(--primary);
+}
+
+.task-info {
+
+    flex: 1;
+}
+
+.task-info h4 {
+
+    margin-bottom: 5px;
+}
+
+.task-info p {
+
+    color: var(--muted);
+
+    font-size: 13px;
+}
+
+.task-item.completed h4 {
+
+    text-decoration: line-through;
+
+    opacity: .5;
+}
+
+.priority {
+
+    padding: 4px 9px;
+
+    border-radius: 20px;
+
+    font-size: 11px;
+}
+
+.priority.High {
+
+    background: #fee2e2;
+
+    color: #dc2626;
+}
+
+.priority.Medium {
+
+    background: #fef3c7;
+
+    color: #d97706;
+}
+
+.priority.Low {
+
+    background: #dcfce7;
+
+    color: #16a34a;
+}
+
+.delete-btn {
+
+    background: transparent;
+
+    border: none;
+
+    color: var(--danger);
+
+    cursor: pointer;
+
+    font-size: 17px;
+}
+
+.filter-bar {
+
+    display: flex;
+
+    gap: 10px;
+
+    margin-bottom: 20px;
+}
+
+.filter-bar select {
+
+    padding: 10px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 8px;
+
+    background: var(--card);
+
+    color: var(--text);
+}
+
+
+/* SUBJECTS / EXAMS / GOALS / NOTES */
+
+.subject-grid,
+.exam-grid,
+.goal-grid,
+.note-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 18px;
+}
+
+.subject-card,
+.exam-card,
+.goal-card,
+.note-card {
+
+    background: var(--card);
+
+    border: 1px solid var(--border);
+
+    border-radius: 14px;
+
+    padding: 20px;
+}
+
+.subject-color {
+
+    width: 45px;
+
+    height: 45px;
+
+    border-radius: 10px;
+
+    margin-bottom: 15px;
+}
+
+.subject-card p,
+.exam-card p,
+.goal-card p {
+
+    color: var(--muted);
+
+    font-size: 14px;
+
+    margin-bottom: 7px;
+}
+
+.exam-card {
+
+    border-top: 4px solid var(--danger);
+}
+
+.exam-days {
+
+    font-size: 25px;
+
+    font-weight: bold;
+
+    color: var(--primary);
+
+    margin: 15px 0;
+}
+
+
+/* TIMETABLE */
+
+.timetable-container {
+
+    overflow-x: auto;
+}
+
+.timetable-grid {
+
+    min-width: 700px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(7, 1fr);
+
+    gap: 10px;
+}
+
+.day-column {
+
+    background: var(--card);
+
+    border: 1px solid var(--border);
+
+    border-radius: 12px;
+
+    min-height: 300px;
+}
+
+.day-header {
+
+    padding: 13px;
+
+    background: var(--primary-light);
+
+    color: var(--primary);
+
+    font-weight: bold;
+
+    text-align: center;
+
+    border-radius:
+        12px 12px 0 0;
+}
+
+.schedule-item {
+
+    margin: 10px;
+
+    padding: 10px;
+
+    background: var(--primary-light);
+
+    border-left:
+        3px solid var(--primary);
+
+    border-radius: 7px;
+
+    font-size: 13px;
+}
+
+.schedule-item strong {
+
+    display: block;
+
+    margin-bottom: 5px;
+}
+
+
+/* GOALS */
+
+.goal-progress {
+
+    height: 9px;
+
+    background: var(--border);
+
+    border-radius: 10px;
+
+    overflow: hidden;
+
+    margin: 15px 0;
+}
+
+.goal-progress div {
+
+    height: 100%;
+
+    background: var(--primary);
+}
+
+
+/* TIMER */
+
+.timer-container {
+
+    max-width: 650px;
+
+    margin: auto;
+}
+
+.timer-card {
+
+    text-align: center;
+
+    padding: 45px;
+}
+
+#timerDisplay {
+
+    font-size: 85px;
+
+    font-weight: bold;
+
+    margin: 30px 0;
+}
+
+.timer-buttons {
+
+    display: flex;
+
+    justify-content: center;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+}
+
+.timer-presets {
+
+    margin-top: 25px;
+
+    display: flex;
+
+    justify-content: center;
+
+    gap: 10px;
+}
+
+.timer-presets button {
+
+    border: 1px solid var(--border);
+
+    background: var(--card);
+
+    color: var(--text);
+
+    padding: 9px 15px;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+}
+
+
+/* NOTES */
+
+.note-card {
+
+    min-height: 180px;
+}
+
+.note-content {
+
+    color: var(--muted);
+
+    white-space: pre-wrap;
+
+    line-height: 1.6;
+
+    margin-top: 12px;
+}
+
+
+/* PROGRESS */
+
+.progress-grid {
+
+    display: grid;
+
+    grid-template-columns: 2fr 1fr;
+
+    gap: 20px;
+}
+
+.large-progress {
+
+    height: 20px;
+
+    background: var(--border);
+
+    border-radius: 20px;
+
+    margin: 30px 0 15px;
+
+    overflow: hidden;
+}
+
+.large-progress div {
+
+    height: 100%;
+
+    width: 0;
+
+    background: var(--primary);
+
+    transition: .3s;
+}
+
+.study-time {
+
+    text-align: center;
+
+    padding: 30px;
+}
+
+.study-time span {
+
+    font-size: 45px;
+}
+
+.study-time strong {
+
+    display: block;
+
+    font-size: 45px;
+
+    margin-top: 10px;
+}
+
+.study-time p {
+
+    color: var(--muted);
+}
+
+
+/* MODAL */
+
+.modal {
+
+    position: fixed;
+
+    inset: 0;
+
+    background:
+        rgba(0,0,0,.55);
+
+    display: none;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 20px;
+
+    z-index: 1000;
+}
+
+.modal.show {
+
+    display: flex;
+}
+
+.modal-content {
+
+    width: 100%;
+
+    max-width: 500px;
+
+    background: var(--card);
+
+    color: var(--text);
+
+    border-radius: 15px;
+
+    padding: 25px;
+
+    max-height: 90vh;
+
+    overflow-y: auto;
+}
+
+.modal-header {
+
+    margin-bottom: 20px;
+}
+
+.modal-header button {
+
+    border: none;
+
+    background: transparent;
+
+    color: var(--text);
+
+    font-size: 28px;
+
+    cursor: pointer;
+}
+
+form label {
+
+    display: block;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    margin: 14px 0 6px;
+}
+
+form input,
+form select,
+form textarea {
+
+    width: 100%;
+
+    padding: 11px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 8px;
+
+    background: var(--card);
+
+    color: var(--text);
+}
+
+
+/* RESPONSIVE */
+
+@media(max-width:1000px) {
+
+    .stats-grid {
+
+        grid-template-columns:
+            repeat(2,1fr);
     }
 
+    .subject-grid,
+    .exam-grid,
+    .goal-grid,
+    .note-grid {
 
-    container.innerHTML =
-        goals.map(goal => {
-
-            const progress =
-                Math.min(
-                    100,
-                    Math.round(
-                        (goal.current / goal.target) * 100
-                    )
-                );
-
-            return `
-                <div class="goal-card">
-
-                    <h3>
-                        ${escapeHTML(goal.name)}
-                    </h3>
-
-                    <p>
-                        ${goal.current}
-                        /
-                        ${goal.target}
-                        ${escapeHTML(goal.unit)}
-                    </p>
-
-                    <div class="goal-progress">
-                        <div style="width:${progress}%"></div>
-                    </div>
-
-                    <p>
-                        ${progress}% completed
-                    </p>
-
-                    <button
-                        class="secondary-btn"
-                        onclick="increaseGoal(${goal.id})"
-                    >
-                        + Progress
-                    </button>
-
-                    <button
-                        class="delete-btn"
-                        onclick="deleteGoal(${goal.id})"
-                    >
-                        Delete
-                    </button>
-
-                </div>
-            `;
-
-        }).join("");
+        grid-template-columns:
+            repeat(2,1fr);
+    }
 }
 
+@media(max-width:700px) {
 
-document
-    .getElementById("goalForm")
-    .addEventListener("submit", function(e) {
+    .sidebar {
 
-        e.preventDefault();
+        transform:
+            translateX(-100%);
 
-        goals.push({
-
-            id: generateId(),
-
-            name:
-                document.getElementById("goalName").value.trim(),
-
-            target:
-                Number(
-                    document.getElementById("goalTarget").value
-                ),
-
-            unit:
-                document.getElementById("goalUnit").value.trim(),
-
-            current: 0
-
-        });
-
-        saveData();
-
-        this.reset();
-
-        closeModal("goalModal");
-
-        updateAll();
-    });
-
-
-function increaseGoal(id) {
-
-    const goal =
-        goals.find(goal => goal.id === id);
-
-    if (!goal) return;
-
-    goal.current =
-        Math.min(
-            goal.target,
-            goal.current + 1
-        );
-
-    saveData();
-
-    updateAll();
-}
-
-
-function deleteGoal(id) {
-
-    goals =
-        goals.filter(goal => goal.id !== id);
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* ---------- NOTES ---------- */
-
-function renderNotes() {
-
-    const container =
-        document.getElementById("noteList");
-
-    if (notes.length === 0) {
-
-        container.innerHTML =
-            `<p class="small-text">
-                No notes saved.
-            </p>`;
-
-        return;
+        transition: .3s;
     }
 
+    .sidebar.open {
 
-    container.innerHTML =
-        notes.map(note => {
+        transform:
+            translateX(0);
+    }
 
-            return `
-                <div class="note-card">
+    .main {
 
-                    <h3>
-                        ${escapeHTML(note.title)}
-                    </h3>
+        margin-left: 0;
 
-                    <p class="note-content">
-                        ${escapeHTML(note.content)}
-                    </p>
+        width: 100%;
 
-                    <br>
+        padding: 15px;
+    }
 
-                    <button
-                        class="delete-btn"
-                        onclick="deleteNote(${note.id})"
-                    >
-                        Delete
-                    </button>
+    #mobileMenu {
 
-                </div>
-            `;
+        display: block;
+    }
 
-        }).join("");
+    .top-actions input {
+
+        width: 150px;
+    }
+
+    .stats-grid,
+    .dashboard-grid,
+    .progress-grid {
+
+        grid-template-columns: 1fr;
+    }
+
+    .subject-grid,
+    .exam-grid,
+    .goal-grid,
+    .note-grid {
+
+        grid-template-columns: 1fr;
+    }
+
+    .welcome-card {
+
+        padding: 20px;
+    }
+
+    .welcome-icon {
+
+        font-size: 45px;
+    }
+
+    #timerDisplay {
+
+        font-size: 60px;
+    }
 }
 
+@media(max-width:450px) {
 
-document
-    .getElementById("noteForm")
-    .addEventListener("submit", function(e) {
+    .auth-card {
 
-        e.preventDefault();
+        padding: 25px 18px;
+    }
 
-        notes.push({
+    .top-actions input {
 
-            id: generateId(),
+        width: 110px;
+    }
 
-            title:
-                document.getElementById("noteTitle").value.trim(),
+    .filter-bar {
 
-            content:
-                document.getElementById("noteContent").value.trim()
-
-        });
-
-        saveData();
-
-        this.reset();
-
-        closeModal("noteModal");
-
-        updateAll();
-    });
-
-
-function deleteNote(id) {
-
-    notes =
-        notes.filter(note => note.id !== id);
-
-    saveData();
-
-    updateAll();
+        flex-direction: column;
+    }
 }
-
-
-/* ---------- PROGRESS ---------- */
-
-function renderProgress() {
-
-    const completed =
-        tasks.filter(task => task.completed).length;
-
-    const progress =
-        tasks.length === 0
-            ? 0
-            : Math.round(
-                completed / tasks.length * 100
-            );
-
-
-    document.getElementById("taskProgressText")
-        .textContent = progress + "%";
-
-    document.getElementById("taskProgressBar")
-        .style.width = progress + "%";
-
-
-    const totalMinutes =
-        tasks.reduce(
-            (sum, task) =>
-                sum + Number(task.duration || 0),
-            0
-        );
-
-    document.getElementById("totalStudyTime")
-        .textContent = totalMinutes;
-}
-
-
-/* ---------- POMODORO TIMER ---------- */
-
-function updateTimerDisplay() {
-
-    const minutes =
-        Math.floor(timerSeconds / 60);
-
-    const seconds =
-        timerSeconds % 60;
-
-    document.getElementById("timerDisplay")
-        .textContent =
-        `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-
-
-document
-    .getElementById("startTimer")
-    .addEventListener("click", function() {
-
-        if (timerInterval) return;
-
-        timerInterval =
-            setInterval(() => {
-
-                if (timerSeconds <= 0) {
-
-                    clearInterval(timerInterval);
-
-                    timerInterval = null;
-
-                    alert("🎉 Focus session completed!");
-
-                    return;
-                }
-
-                timerSeconds--;
-
-                updateTimerDisplay();
-
-            }, 1000);
-    });
-
-
-document
-    .getElementById("pauseTimer")
-    .addEventListener("click", function() {
-
-        clearInterval(timerInterval);
-
-        timerInterval = null;
-    });
-
-
-document
-    .getElementById("resetTimer")
-    .addEventListener("click", function() {
-
-        clearInterval(timerInterval);
-
-        timerInterval = null;
-
-        timerSeconds = 25 * 60;
-
-        updateTimerDisplay();
-    });
-
-
-function setTimer(minutes) {
-
-    clearInterval(timerInterval);
-
-    timerInterval = null;
-
-    timerSeconds = minutes * 60;
-
-    updateTimerDisplay();
-}
-
-
-/* ---------- MODALS ---------- */
-
-function openModal(id) {
-
-    document
-        .getElementById(id)
-        .classList.add("show");
-}
-
-
-function closeModal(id) {
-
-    document
-        .getElementById(id)
-        .classList.remove("show");
-}
-
-
-/* Close modal when clicking outside */
-
-document.querySelectorAll(".modal").forEach(modal => {
-
-    modal.addEventListener("click", function(e) {
-
-        if (e.target === modal) {
-
-            modal.classList.remove("show");
-        }
-
-    });
-
-});
-
-
-/* ---------- DARK MODE ---------- */
-
-const savedTheme =
-    localStorage.getItem("theme");
-
-if (savedTheme === "dark") {
-
-    document.body.classList.add("dark");
-
-    document.getElementById("themeToggle")
-        .textContent = "☀️ Light Mode";
-}
-
-
-document
-    .getElementById("themeToggle")
-    .addEventListener("click", function() {
-
-        document.body.classList.toggle("dark");
-
-        const dark =
-            document.body.classList.contains("dark");
-
-        localStorage.setItem(
-            "theme",
-            dark ? "dark" : "light"
-        );
-
-        this.textContent =
-            dark
-                ? "☀️ Light Mode"
-                : "🌙 Dark Mode";
-    });
-
-
-/* ---------- MOBILE MENU ---------- */
-
-document
-    .getElementById("mobileMenu")
-    .addEventListener("click", function() {
-
-        document
-            .querySelector(".sidebar")
-            .classList.toggle("open");
-    });
-
-
-/* ---------- SEARCH ---------- */
-
-document
-    .getElementById("globalSearch")
-    .addEventListener("input", function() {
-
-        const search =
-            this.value.toLowerCase().trim();
-
-        if (!search) {
-
-            renderTasks();
-
-            return;
-        }
-
-        const results =
-            tasks.filter(task =>
-                task.name.toLowerCase().includes(search) ||
-                task.subject.toLowerCase().includes(search)
-            );
-
-        const container =
-            document.getElementById("taskList");
-
-        showPage("tasks");
-
-        if (results.length === 0) {
-
-            container.innerHTML =
-                `<p class="small-text">
-                    No results found.
-                </p>`;
-
-        } else {
-
-            container.innerHTML =
-                results.map(taskHTML).join("");
-        }
-
-    });
-
-
-/* ---------- RESET DATA ---------- */
-
-document
-    .getElementById("clearData")
-    .addEventListener("click", function() {
-
-        const confirmed =
-            confirm(
-                "Are you sure you want to delete all planner data?"
-            );
-
-        if (!confirmed) return;
-
-        tasks = [];
-        subjects = [];
-        schedules = [];
-        exams = [];
-        goals = [];
-        notes = [];
-
-        saveData();
-
-        updateAll();
-    });
-
-
-/* ---------- DATE ---------- */
-
-document.getElementById("currentDate")
-    .textContent =
-    new Date().toLocaleDateString(
-        "en-IN",
-        {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric"
-        }
-    );
-
-
-/* ---------- FILTER EVENTS ---------- */
-
-document
-    .getElementById("taskFilter")
-    .addEventListener("change", renderTasks);
-
-document
-    .getElementById("priorityFilter")
-    .addEventListener("change", renderTasks);
-
-
-/* ---------- UPDATE EVERYTHING ---------- */
-
-function updateAll() {
-
-    updateDashboard();
-
-    renderTasks();
-
-    renderSubjects();
-
-    renderTimetable();
-
-    renderExams();
-
-    renderGoals();
-
-    renderNotes();
-
-    renderProgress();
-
-    updateTimerDisplay();
-}
-
-
-/* ---------- INITIALIZE ---------- */
-
-updateAll();
+```
