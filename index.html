@@ -3,755 +3,626 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study Planner</title>
+    <title>StudySpark - Online Study Planner</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<!-- ================= LOGIN / REGISTER ================= -->
-<div id="authScreen" class="auth-screen">
+    <!-- ================= LOGIN PAGE ================= -->
+    <section id="loginPage" class="login-page">
 
-    <div class="auth-card">
+        <div class="background-shape shape-one"></div>
+        <div class="background-shape shape-two"></div>
+        <div class="background-shape shape-three"></div>
 
-        <div class="logo">
-            📚
-        </div>
+        <div class="login-card">
 
-        <h1>Study Planner</h1>
-        <p class="subtitle">Plan smarter. Study better.</p>
-
-        <!-- Login -->
-        <div id="loginForm">
-
-            <h2>Student Login</h2>
-
-            <div class="input-group">
-                <label for="loginStudentId">Student ID</label>
-                <input
-                    type="text"
-                    id="loginStudentId"
-                    placeholder="Enter your Student ID"
-                    autocomplete="username"
-                >
+            <div class="logo">
+                <span>📚</span>
+                <h1>Study<span>Spark</span></h1>
             </div>
 
-            <div class="input-group">
-                <label for="loginPassword">Password</label>
-                <input
-                    type="password"
-                    id="loginPassword"
-                    placeholder="Enter your password"
-                    autocomplete="current-password"
-                >
-            </div>
+            <p class="login-subtitle">
+                Your personal online study planner
+            </p>
 
-            <button class="primary-btn" onclick="login()">
-                Login
-            </button>
+            <form id="loginForm">
 
-            <p id="loginMessage" class="message"></p>
+                <div class="input-group">
+                    <label for="studentId">Student ID</label>
+                    <div class="input-wrapper">
+                        <span>🎓</span>
+                        <input
+                            type="text"
+                            id="studentId"
+                            placeholder="Enter your Student ID"
+                            required
+                        >
+                    </div>
+                </div>
 
-            <p class="switch-text">
-                Don't have an account?
-                <button class="link-btn" onclick="showRegister()">
-                    Create Account
+                <div class="input-group">
+                    <label for="password">Password</label>
+
+                    <div class="input-wrapper">
+                        <span>🔒</span>
+
+                        <input
+                            type="password"
+                            id="password"
+                            placeholder="Enter your password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            id="togglePassword"
+                            class="eye-button"
+                        >
+                            👁️
+                        </button>
+                    </div>
+                </div>
+
+                <div id="loginError" class="error-message"></div>
+
+                <button type="submit" class="login-button">
+                    Login 🚀
                 </button>
+
+            </form>
+
+            <p class="demo-info">
+                New student? Your Student ID and password will be saved
+                securely on this device for this demo.
             </p>
 
         </div>
+    </section>
 
-        <!-- Register -->
-        <div id="registerForm" class="hidden">
 
-            <h2>Create Student Account</h2>
+    <!-- ================= MAIN APPLICATION ================= -->
+    <section id="appPage" class="app-page hidden">
 
-            <div class="input-group">
-                <label for="registerName">Full Name</label>
-                <input
-                    type="text"
-                    id="registerName"
-                    placeholder="Enter your full name"
-                >
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+
+            <div class="sidebar-logo">
+                <span>📚</span>
+                <h2>Study<span>Spark</span></h2>
             </div>
 
-            <div class="input-group">
-                <label for="registerStudentId">Student ID</label>
-                <input
-                    type="text"
-                    id="registerStudentId"
-                    placeholder="Example: STU1001"
-                >
+            <div class="student-mini-card">
+                <div class="avatar" id="sidebarAvatar">S</div>
+
+                <div>
+                    <strong id="sidebarStudentId">Student</strong>
+                    <small>Student Account</small>
+                </div>
             </div>
 
-            <div class="input-group">
-                <label for="registerPassword">Password</label>
-                <input
-                    type="password"
-                    id="registerPassword"
-                    placeholder="Minimum 6 characters"
-                >
-            </div>
+            <nav class="navigation">
 
-            <div class="input-group">
-                <label for="registerConfirmPassword">
-                    Confirm Password
-                </label>
-
-                <input
-                    type="password"
-                    id="registerConfirmPassword"
-                    placeholder="Re-enter password"
-                >
-            </div>
-
-            <button class="primary-btn" onclick="register()">
-                Create Account
-            </button>
-
-            <p id="registerMessage" class="message"></p>
-
-            <p class="switch-text">
-                Already have an account?
-                <button class="link-btn" onclick="showLogin()">
-                    Login
+                <button class="nav-item active" data-section="dashboard">
+                    <span>🏠</span>
+                    Dashboard
                 </button>
-            </p>
 
-        </div>
+                <button class="nav-item" data-section="tasks">
+                    <span>📝</span>
+                    My Tasks
+                </button>
 
-    </div>
+                <button class="nav-item" data-section="schedule">
+                    <span>📅</span>
+                    Schedule
+                </button>
 
-</div>
+                <button class="nav-item" data-section="timer">
+                    <span>⏱️</span>
+                    Study Timer
+                </button>
 
+                <button class="nav-item" data-section="notes">
+                    <span>📒</span>
+                    Notes
+                </button>
 
-<!-- ================= MAIN APPLICATION ================= -->
-<div id="app" class="app hidden">
+            </nav>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-
-        <div class="sidebar-logo">
-            📚 <span>Study Planner</span>
-        </div>
-
-        <div class="student-mini-profile">
-            <div class="avatar" id="sidebarAvatar">S</div>
-
-            <div>
-                <strong id="sidebarName">Student</strong>
-                <small id="sidebarStudentId">ID</small>
-            </div>
-        </div>
-
-        <nav>
-
-            <button class="nav-btn active" onclick="showSection('dashboard', this)">
-                🏠 Dashboard
-            </button>
-
-            <button class="nav-btn" onclick="showSection('tasks', this)">
-                ✅ Tasks
-            </button>
-
-            <button class="nav-btn" onclick="showSection('subjects', this)">
-                📚 Subjects
-            </button>
-
-            <button class="nav-btn" onclick="showSection('timetable', this)">
-                🗓️ Timetable
-            </button>
-
-            <button class="nav-btn" onclick="showSection('progress', this)">
-                📊 Progress
-            </button>
-
-        </nav>
-
-        <div class="sidebar-bottom">
-
-            <button class="nav-btn" onclick="toggleTheme()">
-                🌙 Dark Mode
-            </button>
-
-            <button class="logout-btn" onclick="logout()">
+            <button id="logoutButton" class="logout-button">
                 🚪 Logout
             </button>
 
-        </div>
-
-    </aside>
+        </aside>
 
 
-    <!-- Main Content -->
-    <main class="main-content">
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
 
-        <!-- Mobile Header -->
-        <header class="mobile-header">
-
-            <button onclick="toggleSidebar()" class="menu-btn">
-                ☰
-            </button>
-
-            <strong>📚 Study Planner</strong>
-
-        </header>
-
-
-        <!-- ================= DASHBOARD ================= -->
-        <section id="dashboard" class="content-section active-section">
-
-            <div class="page-header">
+            <!-- TOP BAR -->
+            <header class="topbar">
 
                 <div>
-                    <h1>
-                        Welcome, <span id="welcomeName">Student</span> 👋
-                    </h1>
-
-                    <p id="todayDate"></p>
+                    <p class="welcome-small">Welcome back 👋</p>
+                    <h1 id="welcomeName">Student</h1>
                 </div>
 
-                <button class="primary-btn small-btn"
-                        onclick="openTaskModal()">
-                    + Add Task
-                </button>
+                <div class="date-display">
+                    📅 <span id="currentDate"></span>
+                </div>
 
-            </div>
+            </header>
 
 
-            <!-- Statistics -->
-            <div class="stats-grid">
+            <!-- ================= DASHBOARD ================= -->
+            <section id="dashboardSection" class="content-section active-section">
 
-                <div class="stat-card blue">
-                    <div class="stat-icon">📋</div>
+                <div class="hero-banner">
+
                     <div>
-                        <span>Total Tasks</span>
-                        <strong id="totalTasks">0</strong>
-                    </div>
-                </div>
+                        <span class="hero-tag">✨ Keep learning</span>
 
-                <div class="stat-card green">
-                    <div class="stat-icon">✅</div>
-                    <div>
-                        <span>Completed</span>
-                        <strong id="completedTasks">0</strong>
-                    </div>
-                </div>
-
-                <div class="stat-card orange">
-                    <div class="stat-icon">⏳</div>
-                    <div>
-                        <span>Pending</span>
-                        <strong id="pendingTasks">0</strong>
-                    </div>
-                </div>
-
-                <div class="stat-card purple">
-                    <div class="stat-icon">📈</div>
-                    <div>
-                        <span>Progress</span>
-                        <strong id="overallProgress">0%</strong>
-                    </div>
-                </div>
-
-            </div>
-
-
-            <div class="dashboard-grid">
-
-                <!-- Today's Tasks -->
-                <div class="panel">
-
-                    <div class="panel-header">
-                        <h2>Today's Tasks</h2>
-
-                        <button class="text-btn"
-                                onclick="showSectionById('tasks')">
-                            View All
-                        </button>
-                    </div>
-
-                    <div id="todayTasks" class="task-list">
-                        <div class="empty-state">
-                            No tasks for today.
-                        </div>
-                    </div>
-
-                </div>
-
-
-                <!-- Progress -->
-                <div class="panel">
-
-                    <div class="panel-header">
-                        <h2>Study Progress</h2>
-                    </div>
-
-                    <div class="progress-container">
-
-                        <div class="circular-progress"
-                             id="dashboardCircle">
-
-                            <span id="dashboardProgressText">
-                                0%
-                            </span>
-
-                        </div>
+                        <h2>
+                            Make today a
+                            <span>productive day!</span>
+                        </h2>
 
                         <p>
-                            Overall task completion
+                            Plan your studies, complete your tasks,
+                            and track your progress.
                         </p>
-
                     </div>
 
-                </div>
-
-            </div>
-
-
-            <!-- Upcoming -->
-            <div class="panel">
-
-                <div class="panel-header">
-                    <h2>Upcoming Tasks</h2>
-                </div>
-
-                <div id="upcomingTasks" class="task-list">
-                    <div class="empty-state">
-                        No upcoming tasks.
-                    </div>
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= TASKS ================= -->
-        <section id="tasks" class="content-section">
-
-            <div class="page-header">
-
-                <div>
-                    <h1>My Tasks</h1>
-                    <p>Manage your study tasks.</p>
-                </div>
-
-                <button class="primary-btn"
-                        onclick="openTaskModal()">
-                    + Add Task
-                </button>
-
-            </div>
-
-
-            <div class="filter-bar">
-
-                <input
-                    type="text"
-                    id="taskSearch"
-                    placeholder="🔎 Search tasks..."
-                    oninput="renderTasks()"
-                >
-
-                <select id="taskFilter"
-                        onchange="renderTasks()">
-
-                    <option value="all">All Tasks</option>
-                    <option value="pending">Pending</option>
-                    <option value="completed">Completed</option>
-
-                </select>
-
-            </div>
-
-
-            <div id="allTasks" class="large-task-list"></div>
-
-        </section>
-
-
-        <!-- ================= SUBJECTS ================= -->
-        <section id="subjects" class="content-section">
-
-            <div class="page-header">
-
-                <div>
-                    <h1>Subjects</h1>
-                    <p>Manage your subjects.</p>
-                </div>
-
-                <button class="primary-btn"
-                        onclick="openSubjectModal()">
-                    + Add Subject
-                </button>
-
-            </div>
-
-            <div id="subjectGrid" class="subject-grid"></div>
-
-        </section>
-
-
-        <!-- ================= TIMETABLE ================= -->
-        <section id="timetable" class="content-section">
-
-            <div class="page-header">
-
-                <div>
-                    <h1>Weekly Timetable</h1>
-                    <p>Organize your study schedule.</p>
-                </div>
-
-                <button class="primary-btn"
-                        onclick="openScheduleModal()">
-                    + Add Schedule
-                </button>
-
-            </div>
-
-            <div class="timetable-wrapper">
-
-                <table class="timetable">
-
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Monday</th>
-                            <th>Tuesday</th>
-                            <th>Wednesday</th>
-                            <th>Thursday</th>
-                            <th>Friday</th>
-                            <th>Saturday</th>
-                            <th>Sunday</th>
-                        </tr>
-                    </thead>
-
-                    <tbody id="timetableBody"></tbody>
-
-                </table>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= PROGRESS ================= -->
-        <section id="progress" class="content-section">
-
-            <div class="page-header">
-
-                <div>
-                    <h1>Progress</h1>
-                    <p>Track your study performance.</p>
-                </div>
-
-            </div>
-
-
-            <div class="progress-dashboard">
-
-                <div class="big-progress-card">
-
-                    <h2>Overall Completion</h2>
-
-                    <div class="big-circle"
-                         id="bigProgressCircle">
-
-                        <span id="bigProgressText">0%</span>
-
+                    <div class="hero-emoji">
+                        🎯
                     </div>
 
                 </div>
 
 
-                <div class="panel">
+                <!-- STAT CARDS -->
+                <div class="stats-grid">
 
-                    <h2>Task Statistics</h2>
+                    <div class="stat-card purple">
+                        <div class="stat-icon">📋</div>
+                        <div>
+                            <span>Total Tasks</span>
+                            <strong id="totalTasks">0</strong>
+                        </div>
+                    </div>
 
-                    <div class="progress-stat">
+                    <div class="stat-card green">
+                        <div class="stat-icon">✅</div>
+                        <div>
+                            <span>Completed</span>
+                            <strong id="completedTasks">0</strong>
+                        </div>
+                    </div>
 
-                        <span>Completed</span>
+                    <div class="stat-card orange">
+                        <div class="stat-icon">🔥</div>
+                        <div>
+                            <span>Pending</span>
+                            <strong id="pendingTasks">0</strong>
+                        </div>
+                    </div>
 
-                        <div class="progress-bar">
-                            <div id="completedBar"
-                                 class="progress-fill green-fill">
+                    <div class="stat-card blue">
+                        <div class="stat-icon">📈</div>
+                        <div>
+                            <span>Progress</span>
+                            <strong id="progressPercent">0%</strong>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="dashboard-grid">
+
+                    <!-- PROGRESS -->
+                    <div class="panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <h3>Study Progress</h3>
+                                <p>Your overall task completion</p>
                             </div>
+
+                            <span class="progress-number" id="progressNumber">
+                                0%
+                            </span>
                         </div>
 
-                        <strong id="completedPercent">
-                            0%
-                        </strong>
-
-                    </div>
-
-
-                    <div class="progress-stat">
-
-                        <span>Pending</span>
-
-                        <div class="progress-bar">
-                            <div id="pendingBar"
-                                 class="progress-fill orange-fill">
-                            </div>
+                        <div class="large-progress">
+                            <div
+                                id="progressBar"
+                                class="large-progress-fill"
+                            ></div>
                         </div>
 
-                        <strong id="pendingPercent">
-                            0%
-                        </strong>
+                        <div class="progress-message" id="progressMessage">
+                            Start adding tasks to track your progress.
+                        </div>
+
+                    </div>
+
+
+                    <!-- TODAY -->
+                    <div class="panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <h3>Today's Tasks</h3>
+                                <p>What you need to complete today</p>
+                            </div>
+
+                            <button
+                                class="small-action"
+                                onclick="showSection('tasks')"
+                            >
+                                + Add
+                            </button>
+                        </div>
+
+                        <div id="todayTasks" class="task-preview">
+                        </div>
 
                     </div>
 
                 </div>
 
-            </div>
+            </section>
 
 
-            <div class="panel">
+            <!-- ================= TASKS ================= -->
+            <section id="tasksSection" class="content-section">
 
-                <div class="panel-header">
-                    <h2>Subject Performance</h2>
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">📚 Productivity</span>
+                        <h2>My Tasks</h2>
+                        <p>Organize everything you need to study.</p>
+                    </div>
+
+                    <button
+                        class="primary-button"
+                        id="openTaskModal"
+                    >
+                        + Add Task
+                    </button>
                 </div>
 
-                <div id="subjectProgress"></div>
+                <div class="filter-bar">
 
-            </div>
+                    <button class="filter-button active" data-filter="all">
+                        All
+                    </button>
 
-        </section>
+                    <button class="filter-button" data-filter="pending">
+                        Pending
+                    </button>
 
-    </main>
+                    <button class="filter-button" data-filter="completed">
+                        Completed
+                    </button>
 
-</div>
+                </div>
+
+                <div id="taskList" class="task-list">
+                </div>
+
+            </section>
 
 
-<!-- ================= TASK MODAL ================= -->
-<div id="taskModal" class="modal">
+            <!-- ================= SCHEDULE ================= -->
+            <section id="scheduleSection" class="content-section">
 
-    <div class="modal-content">
+                <div class="section-heading">
 
-        <div class="modal-header">
+                    <div>
+                        <span class="section-tag">🗓️ Planning</span>
+                        <h2>Study Schedule</h2>
+                        <p>Build your daily study routine.</p>
+                    </div>
 
-            <h2 id="taskModalTitle">Add Task</h2>
+                    <button
+                        class="primary-button"
+                        id="openScheduleModal"
+                    >
+                        + Add Schedule
+                    </button>
 
-            <button class="close-btn"
-                    onclick="closeModal('taskModal')">
+                </div>
+
+                <div id="scheduleList" class="schedule-list">
+                </div>
+
+            </section>
+
+
+            <!-- ================= TIMER ================= -->
+            <section id="timerSection" class="content-section">
+
+                <div class="section-heading">
+
+                    <div>
+                        <span class="section-tag">⏱️ Focus</span>
+                        <h2>Study Timer</h2>
+                        <p>Use focused sessions to improve productivity.</p>
+                    </div>
+
+                </div>
+
+                <div class="timer-container">
+
+                    <div class="timer-circle">
+
+                        <div class="timer-inner">
+
+                            <span id="timerLabel">
+                                Focus Session
+                            </span>
+
+                            <strong id="timerDisplay">
+                                25:00
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                    <div class="timer-controls">
+
+                        <button
+                            id="startTimer"
+                            class="timer-button start"
+                        >
+                            ▶ Start
+                        </button>
+
+                        <button
+                            id="pauseTimer"
+                            class="timer-button pause"
+                        >
+                            ⏸ Pause
+                        </button>
+
+                        <button
+                            id="resetTimer"
+                            class="timer-button reset"
+                        >
+                            ↻ Reset
+                        </button>
+
+                    </div>
+
+                    <div class="timer-presets">
+
+                        <button data-minutes="25">
+                            25 min
+                        </button>
+
+                        <button data-minutes="45">
+                            45 min
+                        </button>
+
+                        <button data-minutes="60">
+                            60 min
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= NOTES ================= -->
+            <section id="notesSection" class="content-section">
+
+                <div class="section-heading">
+
+                    <div>
+                        <span class="section-tag">💡 Ideas</span>
+                        <h2>My Notes</h2>
+                        <p>Save important study notes and reminders.</p>
+                    </div>
+
+                    <button
+                        class="primary-button"
+                        id="saveNotes"
+                    >
+                        💾 Save Notes
+                    </button>
+
+                </div>
+
+                <div class="notes-container">
+
+                    <textarea
+                        id="notesArea"
+                        placeholder="Write your study notes here..."
+                    ></textarea>
+
+                    <div class="notes-footer">
+                        <span id="characterCount">0 characters</span>
+                        <span>💾 Automatically stored on this device</span>
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </section>
+
+
+    <!-- ================= TASK MODAL ================= -->
+    <div id="taskModal" class="modal">
+
+        <div class="modal-card">
+
+            <button class="close-modal" data-close="taskModal">
                 ×
             </button>
 
-        </div>
+            <h2>➕ Add New Task</h2>
 
-        <input type="hidden" id="editTaskId">
+            <form id="taskForm">
 
-        <div class="input-group">
+                <div class="form-row">
 
-            <label>Task Title</label>
+                    <div class="form-group">
+                        <label>Task Name</label>
+                        <input
+                            type="text"
+                            id="taskName"
+                            placeholder="e.g. Mathematics Chapter 5"
+                            required
+                        >
+                    </div>
 
-            <input
-                type="text"
-                id="taskTitle"
-                placeholder="Example: Study Mathematics"
-            >
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <input
+                            type="text"
+                            id="taskSubject"
+                            placeholder="e.g. Mathematics"
+                            required
+                        >
+                    </div>
 
-        </div>
+                </div>
 
-        <div class="form-row">
+                <div class="form-row">
 
-            <div class="input-group">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input
+                            type="date"
+                            id="taskDate"
+                            required
+                        >
+                    </div>
 
-                <label>Subject</label>
+                    <div class="form-group">
+                        <label>Priority</label>
 
-                <select id="taskSubject"></select>
+                        <select id="taskPriority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>
+                                Medium
+                            </option>
+                            <option value="high">High</option>
+                        </select>
 
-            </div>
+                    </div>
 
-            <div class="input-group">
+                </div>
 
-                <label>Priority</label>
+                <button class="primary-button full-width">
+                    Add Task 🚀
+                </button>
 
-                <select id="taskPriority">
-
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="high">High</option>
-
-                </select>
-
-            </div>
-
-        </div>
-
-
-        <div class="form-row">
-
-            <div class="input-group">
-
-                <label>Date</label>
-
-                <input type="date" id="taskDate">
-
-            </div>
-
-            <div class="input-group">
-
-                <label>Time</label>
-
-                <input type="time" id="taskTime">
-
-            </div>
-
-        </div>
-
-
-        <div class="input-group">
-
-            <label>Description</label>
-
-            <textarea
-                id="taskDescription"
-                placeholder="Add notes..."
-            ></textarea>
+            </form>
 
         </div>
-
-        <p id="taskMessage" class="message"></p>
-
-        <button class="primary-btn full-btn"
-                onclick="saveTask()">
-            Save Task
-        </button>
 
     </div>
 
-</div>
 
+    <!-- ================= SCHEDULE MODAL ================= -->
+    <div id="scheduleModal" class="modal">
 
-<!-- ================= SUBJECT MODAL ================= -->
-<div id="subjectModal" class="modal">
+        <div class="modal-card">
 
-    <div class="modal-content">
-
-        <div class="modal-header">
-
-            <h2>Add Subject</h2>
-
-            <button class="close-btn"
-                    onclick="closeModal('subjectModal')">
+            <button class="close-modal" data-close="scheduleModal">
                 ×
             </button>
 
+            <h2>🗓️ Add Study Session</h2>
+
+            <form id="scheduleForm">
+
+                <div class="form-group">
+                    <label>Subject</label>
+
+                    <input
+                        type="text"
+                        id="scheduleSubject"
+                        placeholder="e.g. Physics"
+                        required
+                    >
+                </div>
+
+                <div class="form-row">
+
+                    <div class="form-group">
+                        <label>Date</label>
+
+                        <input
+                            type="date"
+                            id="scheduleDate"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label>Time</label>
+
+                        <input
+                            type="time"
+                            id="scheduleTime"
+                            required
+                        >
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+                    <label>Duration</label>
+
+                    <select id="scheduleDuration">
+
+                        <option value="30">
+                            30 minutes
+                        </option>
+
+                        <option value="45">
+                            45 minutes
+                        </option>
+
+                        <option value="60" selected>
+                            1 hour
+                        </option>
+
+                        <option value="90">
+                            1.5 hours
+                        </option>
+
+                        <option value="120">
+                            2 hours
+                        </option>
+
+                    </select>
+                </div>
+
+                <button class="primary-button full-width">
+                    Add Session 📚
+                </button>
+
+            </form>
+
         </div>
-
-        <div class="input-group">
-
-            <label>Subject Name</label>
-
-            <input
-                type="text"
-                id="subjectName"
-                placeholder="Example: Mathematics"
-            >
-
-        </div>
-
-        <div class="input-group">
-
-            <label>Subject Color</label>
-
-            <input
-                type="color"
-                id="subjectColor"
-                value="#4f46e5"
-            >
-
-        </div>
-
-        <p id="subjectMessage" class="message"></p>
-
-        <button class="primary-btn full-btn"
-                onclick="saveSubject()">
-            Add Subject
-        </button>
 
     </div>
 
-</div>
 
-
-<!-- ================= SCHEDULE MODAL ================= -->
-<div id="scheduleModal" class="modal">
-
-    <div class="modal-content">
-
-        <div class="modal-header">
-
-            <h2>Add Schedule</h2>
-
-            <button class="close-btn"
-                    onclick="closeModal('scheduleModal')">
-                ×
-            </button>
-
-        </div>
-
-        <div class="input-group">
-
-            <label>Day</label>
-
-            <select id="scheduleDay">
-
-                <option value="Monday">Monday</option>
-                <option value="Tuesday">Tuesday</option>
-                <option value="Wednesday">Wednesday</option>
-                <option value="Thursday">Thursday</option>
-                <option value="Friday">Friday</option>
-                <option value="Saturday">Saturday</option>
-                <option value="Sunday">Sunday</option>
-
-            </select>
-
-        </div>
-
-        <div class="form-row">
-
-            <div class="input-group">
-
-                <label>Start Time</label>
-
-                <input type="time" id="scheduleStart">
-
-            </div>
-
-            <div class="input-group">
-
-                <label>End Time</label>
-
-                <input type="time" id="scheduleEnd">
-
-            </div>
-
-        </div>
-
-        <div class="input-group">
-
-            <label>Subject</label>
-
-            <select id="scheduleSubject"></select>
-
-        </div>
-
-        <p id="scheduleMessage" class="message"></p>
-
-        <button class="primary-btn full-btn"
-                onclick="saveSchedule()">
-            Add Schedule
-        </button>
-
-    </div>
-
-</div>
-
-
-<script src="script.js"></script>
+    <script src="script.js"></script>
 
 </body>
 </html>
