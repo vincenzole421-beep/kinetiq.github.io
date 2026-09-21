@@ -1,589 +1,298 @@
 /* =====================================================
-   STUDY PLANNER APPLICATION
-===================================================== */
+   STUDYSPARK - APPLICATION JAVASCRIPT
+   ===================================================== */
+
+"use strict";
 
 
 /* =====================================================
-   GLOBAL STATE
-===================================================== */
+   STORAGE
+   ===================================================== */
 
-let currentUser = null;
-
-let currentData = {
-    tasks: [],
-    subjects: [],
-    schedules: []
+const STORAGE_KEYS = {
+    account: "studyspark_account",
+    session: "studyspark_session",
+    tasks: "studyspark_tasks",
+    schedules: "studyspark_schedules",
+    notes: "studyspark_notes"
 };
 
 
 /* =====================================================
-   STORAGE HELPERS
-===================================================== */
+   DOM HELPERS
+   ===================================================== */
 
-function getUsers() {
+const $ = (selector) => document.querySelector(selector);
 
+const $$ = (selector) => document.querySelectorAll(selector);
+
+
+/* =====================================================
+   LOGIN ELEMENTS
+   ===================================================== */
+
+const loginPage = $("#loginPage");
+const appPage = $("#appPage");
+
+const loginForm = $("#loginForm");
+const studentIdInput = $("#studentId");
+const passwordInput = $("#password");
+const loginError = $("#loginError");
+const togglePassword = $("#togglePassword");
+
+
+/* =====================================================
+   LOGIN / ACCOUNT
+   ===================================================== */
+
+function getAccount() {
     try {
-
         return JSON.parse(
-            localStorage.getItem("studyPlannerUsers")
-        ) || {};
-
-    } catch (error) {
-
-        console.error("Could not read users:", error);
-
-        return {};
-
+            localStorage.getItem(STORAGE_KEYS.account)
+        );
+    } catch {
+        return null;
     }
-
 }
 
 
-function saveUsers(users) {
-
+function saveAccount(account) {
     localStorage.setItem(
-        "studyPlannerUsers",
-        JSON.stringify(users)
+        STORAGE_KEYS.account,
+        JSON.stringify(account)
     );
-
 }
 
 
-function getUserData(studentId) {
-
-    try {
-
-        return JSON.parse(
-            localStorage.getItem(
-                "studyPlannerData_" + studentId
-            )
-        ) || {
-            tasks: [],
-            subjects: [],
-            schedules: []
-        };
-
-    } catch (error) {
-
-        console.error("Could not read user data:", error);
-
-        return {
-            tasks: [],
-            subjects: [],
-            schedules: []
-        };
-
-    }
-
+function getSession() {
+    return localStorage.getItem(
+        STORAGE_KEYS.session
+    );
 }
 
 
-function saveUserData() {
-
-    if (!currentUser) {
-        return;
-    }
-
+function setSession(studentId) {
     localStorage.setItem(
-        "studyPlannerData_" + currentUser.studentId,
-        JSON.stringify(currentData)
+        STORAGE_KEYS.session,
+        studentId
     );
+}
 
+
+function clearSession() {
+    localStorage.removeItem(
+        STORAGE_KEYS.session
+    );
 }
 
 
 /* =====================================================
-   PAGE INITIALIZATION
-===================================================== */
+   PASSWORD VISIBILITY
+   ===================================================== */
 
-document.addEventListener("DOMContentLoaded", function () {
+togglePassword.addEventListener("click", () => {
 
-    const savedStudentId =
-        localStorage.getItem("studyPlannerLoggedIn");
+    if (passwordInput.type === "password") {
 
-    if (savedStudentId) {
+        passwordInput.type = "text";
 
-        const users = getUsers();
+        togglePassword.textContent = "🙈";
 
-        if (users[savedStudentId]) {
+    } else {
 
-            currentUser = users[savedStudentId];
+        passwordInput.type = "password";
 
-            loadUserData();
-
-            showApp();
-
-        } else {
-
-            localStorage.removeItem(
-                "studyPlannerLoggedIn"
-            );
-
-        }
-
+        togglePassword.textContent = "👁️";
     }
-
-    updateDate();
 
 });
 
 
 /* =====================================================
-   AUTH UI
-===================================================== */
-
-function showRegister() {
-
-    document
-        .getElementById("loginForm")
-        .classList.add("hidden");
-
-    document
-        .getElementById("registerForm")
-        .classList.remove("hidden");
-
-    clearMessages();
-
-}
-
-
-function showLogin() {
-
-    document
-        .getElementById("registerForm")
-        .classList.add("hidden");
-
-    document
-        .getElementById("loginForm")
-        .classList.remove("hidden");
-
-    clearMessages();
-
-}
-
-
-function clearMessages() {
-
-    document.getElementById("loginMessage").textContent = "";
-
-    document.getElementById("registerMessage").textContent = "";
-
-}
-
-
-/* =====================================================
-   REGISTER
-===================================================== */
-
-function register() {
-
-    const name =
-        document
-            .getElementById("registerName")
-            .value
-            .trim();
-
-    const studentId =
-        document
-            .getElementById("registerStudentId")
-            .value
-            .trim()
-            .toUpperCase();
-
-    const password =
-        document
-            .getElementById("registerPassword")
-            .value;
-
-    const confirmPassword =
-        document
-            .getElementById("registerConfirmPassword")
-            .value;
-
-    const message =
-        document.getElementById("registerMessage");
-
-
-    if (!name || !studentId || !password || !confirmPassword) {
-
-        showMessage(
-            message,
-            "Please fill in all fields.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    if (studentId.length < 3) {
-
-        showMessage(
-            message,
-            "Student ID must contain at least 3 characters.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    if (password.length < 6) {
-
-        showMessage(
-            message,
-            "Password must contain at least 6 characters.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    if (password !== confirmPassword) {
-
-        showMessage(
-            message,
-            "Passwords do not match.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    const users = getUsers();
-
-
-    if (users[studentId]) {
-
-        showMessage(
-            message,
-            "This Student ID already exists.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    users[studentId] = {
-
-        name: name,
-
-        studentId: studentId,
-
-        password: password,
-
-        createdAt: new Date().toISOString()
-
-    };
-
-
-    saveUsers(users);
-
-
-    localStorage.setItem(
-        "studyPlannerData_" + studentId,
-        JSON.stringify({
-            tasks: [],
-            subjects: [
-                {
-                    id: generateId(),
-                    name: "Mathematics",
-                    color: "#4f46e5"
-                },
-                {
-                    id: generateId(),
-                    name: "Science",
-                    color: "#10b981"
-                },
-                {
-                    id: generateId(),
-                    name: "English",
-                    color: "#f59e0b"
-                }
-            ],
-            schedules: []
-        })
-    );
-
-
-    showMessage(
-        message,
-        "Account created successfully. You can now login.",
-        "success"
-    );
-
-
-    setTimeout(function () {
-
-        document.getElementById(
-            "loginStudentId"
-        ).value = studentId;
-
-        document.getElementById(
-            "loginPassword"
-        ).value = "";
-
-        showLogin();
-
-    }, 1000);
-
-}
-
-
-/* =====================================================
    LOGIN
-===================================================== */
+   ===================================================== */
 
-function login() {
+loginForm.addEventListener("submit", (event) => {
+
+    event.preventDefault();
 
     const studentId =
-        document
-            .getElementById("loginStudentId")
-            .value
-            .trim()
-            .toUpperCase();
+        studentIdInput.value.trim();
 
     const password =
-        document
-            .getElementById("loginPassword")
-            .value;
+        passwordInput.value;
 
-    const message =
-        document.getElementById("loginMessage");
-
+    loginError.textContent = "";
 
     if (!studentId || !password) {
 
-        showMessage(
-            message,
-            "Enter your Student ID and password.",
-            "error"
-        );
+        loginError.textContent =
+            "Please enter Student ID and password.";
 
         return;
+    }
 
+    if (studentId.length < 3) {
+
+        loginError.textContent =
+            "Student ID must contain at least 3 characters.";
+
+        return;
+    }
+
+    if (password.length < 4) {
+
+        loginError.textContent =
+            "Password must contain at least 4 characters.";
+
+        return;
+    }
+
+    const existingAccount = getAccount();
+
+    /*
+        For this front-end-only version:
+
+        First login:
+        account is created.
+
+        Later logins:
+        credentials are checked against
+        the locally stored account.
+    */
+
+    if (!existingAccount) {
+
+        saveAccount({
+            studentId: studentId,
+            password: password
+        });
+
+        setSession(studentId);
+
+        openApplication();
+
+        return;
     }
 
 
-    const users = getUsers();
+    if (
+        existingAccount.studentId !== studentId ||
+        existingAccount.password !== password
+    ) {
 
-    const user = users[studentId];
-
-
-    if (!user) {
-
-        showMessage(
-            message,
-            "Student ID not found.",
-            "error"
-        );
+        loginError.textContent =
+            "Incorrect Student ID or password.";
 
         return;
-
     }
 
+    setSession(studentId);
 
-    if (user.password !== password) {
+    openApplication();
 
-        showMessage(
-            message,
-            "Incorrect password.",
-            "error"
-        );
-
-        return;
-
-    }
+});
 
 
-    currentUser = user;
+/* =====================================================
+   OPEN APPLICATION
+   ===================================================== */
 
-    localStorage.setItem(
-        "studyPlannerLoggedIn",
-        studentId
-    );
+function openApplication() {
 
+    loginPage.classList.add("hidden");
 
-    loadUserData();
+    appPage.classList.remove("hidden");
 
-    showApp();
-
+    initializeApplication();
 }
 
 
 /* =====================================================
    LOGOUT
-===================================================== */
+   ===================================================== */
 
-function logout() {
+$("#logoutButton").addEventListener("click", () => {
 
-    if (
-        !confirm(
-            "Are you sure you want to logout?"
-        )
-    ) {
-        return;
-    }
+    clearSession();
 
-    currentUser = null;
+    appPage.classList.add("hidden");
 
-    currentData = {
-        tasks: [],
-        subjects: [],
-        schedules: []
-    };
+    loginPage.classList.remove("hidden");
 
-    localStorage.removeItem(
-        "studyPlannerLoggedIn"
-    );
+    loginForm.reset();
 
+    loginError.textContent = "";
 
-    document
-        .getElementById("app")
-        .classList.add("hidden");
-
-    document
-        .getElementById("authScreen")
-        .classList.remove("hidden");
-
-
-    document.getElementById(
-        "loginStudentId"
-    ).value = "";
-
-    document.getElementById(
-        "loginPassword"
-    ).value = "";
-
-    showLogin();
-
-}
+});
 
 
 /* =====================================================
-   SHOW APP
-===================================================== */
+   NAVIGATION
+   ===================================================== */
 
-function showApp() {
+$$(".nav-item").forEach((button) => {
 
-    document
-        .getElementById("authScreen")
-        .classList.add("hidden");
+    button.addEventListener("click", () => {
 
-    document
-        .getElementById("app")
-        .classList.remove("hidden");
+        const section =
+            button.dataset.section;
 
+        showSection(section);
 
-    document.getElementById(
-        "welcomeName"
-    ).textContent = currentUser.name;
+    });
+
+});
 
 
-    document.getElementById(
-        "sidebarName"
-    ).textContent = currentUser.name;
+function showSection(sectionName) {
 
+    $$(".nav-item").forEach((button) => {
 
-    document.getElementById(
-        "sidebarStudentId"
-    ).textContent = currentUser.studentId;
-
-
-    document.getElementById(
-        "sidebarAvatar"
-    ).textContent =
-        currentUser.name
-            .charAt(0)
-            .toUpperCase();
-
-
-    updateDate();
-
-    refreshApplication();
-
-}
-
-
-/* =====================================================
-   LOAD USER DATA
-===================================================== */
-
-function loadUserData() {
-
-    currentData =
-        getUserData(
-            currentUser.studentId
+        button.classList.toggle(
+            "active",
+            button.dataset.section === sectionName
         );
 
+    });
 
-    if (!Array.isArray(currentData.tasks)) {
-        currentData.tasks = [];
-    }
 
-    if (!Array.isArray(currentData.subjects)) {
-        currentData.subjects = [];
-    }
+    $$(".content-section").forEach((section) => {
 
-    if (!Array.isArray(currentData.schedules)) {
-        currentData.schedules = [];
+        section.classList.remove(
+            "active-section"
+        );
+
+    });
+
+
+    const target =
+        $(`#${sectionName}Section`);
+
+    if (target) {
+
+        target.classList.add(
+            "active-section"
+        );
+
     }
 
 }
 
 
-/* =====================================================
-   REFRESH EVERYTHING
-===================================================== */
-
-function refreshApplication() {
-
-    updateStatistics();
-
-    renderTodayTasks();
-
-    renderUpcomingTasks();
-
-    renderTasks();
-
-    renderSubjects();
-
-    renderSubjectSelects();
-
-    renderTimetable();
-
-    renderProgress();
-
-}
+window.showSection = showSection;
 
 
 /* =====================================================
    DATE
-===================================================== */
+   ===================================================== */
 
 function updateDate() {
 
-    const element =
-        document.getElementById("todayDate");
+    const now = new Date();
 
-    if (!element) {
-        return;
-    }
-
-
-    const today = new Date();
-
-
-    element.textContent =
-        today.toLocaleDateString(
+    $("#currentDate").textContent =
+        now.toLocaleDateString(
             undefined,
             {
                 weekday: "long",
@@ -592,507 +301,146 @@ function updateDate() {
                 day: "numeric"
             }
         );
+}
+
+
+/* =====================================================
+   USER INFORMATION
+   ===================================================== */
+
+function updateUserInformation() {
+
+    const account = getAccount();
+
+    if (!account) return;
+
+    const id = account.studentId;
+
+    $("#welcomeName").textContent =
+        `Student ${id}`;
+
+    $("#sidebarStudentId").textContent =
+        id;
+
+    $("#sidebarAvatar").textContent =
+        id.charAt(0).toUpperCase();
 
 }
 
 
 /* =====================================================
-   NAVIGATION
-===================================================== */
+   TASK STORAGE
+   ===================================================== */
 
-function showSection(sectionId, button) {
+function getTasks() {
 
-    document
-        .querySelectorAll(".content-section")
-        .forEach(function (section) {
+    try {
 
-            section.classList.remove(
-                "active-section"
-            );
+        return JSON.parse(
+            localStorage.getItem(
+                STORAGE_KEYS.tasks
+            )
+        ) || [];
 
-        });
+    } catch {
 
-
-    const section =
-        document.getElementById(sectionId);
-
-
-    if (section) {
-
-        section.classList.add(
-            "active-section"
-        );
+        return [];
 
     }
-
-
-    document
-        .querySelectorAll(".nav-btn")
-        .forEach(function (btn) {
-
-            btn.classList.remove("active");
-
-        });
-
-
-    if (button) {
-        button.classList.add("active");
-    }
-
-
-    closeMobileSidebar();
 
 }
 
 
-function showSectionById(sectionId) {
+function saveTasks(tasks) {
 
-    const button =
-        document.querySelector(
-            `.nav-btn[onclick*="'${sectionId}'"]`
-        );
-
-
-    showSection(
-        sectionId,
-        button
+    localStorage.setItem(
+        STORAGE_KEYS.tasks,
+        JSON.stringify(tasks)
     );
 
 }
 
 
 /* =====================================================
-   SIDEBAR MOBILE
-===================================================== */
+   ADD TASK
+   ===================================================== */
 
-function toggleSidebar() {
+const taskModal = $("#taskModal");
 
-    document
-        .querySelector(".sidebar")
-        .classList.toggle(
-            "mobile-open"
-        );
-
-}
-
-
-function closeMobileSidebar() {
-
-    document
-        .querySelector(".sidebar")
-        .classList.remove(
-            "mobile-open"
-        );
-
-}
+$("#openTaskModal").addEventListener(
+    "click",
+    () => {
+        taskModal.classList.add("show");
+    }
+);
 
 
-/* =====================================================
-   TASK MODAL
-===================================================== */
+$("#taskForm").addEventListener(
+    "submit",
+    (event) => {
 
-function openTaskModal(taskId = null) {
+        event.preventDefault();
 
-    if (currentData.subjects.length === 0) {
+        const task = {
 
-        alert(
-            "Please create a subject first."
-        );
+            id:
+                Date.now(),
 
-        showSectionById("subjects");
+            name:
+                $("#taskName").value.trim(),
 
-        return;
+            subject:
+                $("#taskSubject").value.trim(),
+
+            date:
+                $("#taskDate").value,
+
+            priority:
+                $("#taskPriority").value,
+
+            completed:
+                false
+
+        };
+
+
+        const tasks = getTasks();
+
+        tasks.push(task);
+
+        saveTasks(tasks);
+
+        $("#taskForm").reset();
+
+        taskModal.classList.remove("show");
+
+        renderTasks();
+
+        updateDashboard();
 
     }
-
-
-    document
-        .getElementById("taskModal")
-        .classList.add("show");
-
-
-    renderSubjectSelects();
-
-
-    const title =
-        document.getElementById(
-            "taskModalTitle"
-        );
-
-
-    if (taskId) {
-
-        const task =
-            currentData.tasks.find(
-                function (item) {
-                    return item.id === taskId;
-                }
-            );
-
-
-        if (!task) {
-            return;
-        }
-
-
-        title.textContent = "Edit Task";
-
-
-        document.getElementById(
-            "editTaskId"
-        ).value = task.id;
-
-
-        document.getElementById(
-            "taskTitle"
-        ).value = task.title;
-
-
-        document.getElementById(
-            "taskSubject"
-        ).value = task.subjectId;
-
-
-        document.getElementById(
-            "taskPriority"
-        ).value = task.priority;
-
-
-        document.getElementById(
-            "taskDate"
-        ).value = task.date;
-
-
-        document.getElementById(
-            "taskTime"
-        ).value = task.time || "";
-
-
-        document.getElementById(
-            "taskDescription"
-        ).value =
-            task.description || "";
-
-    } else {
-
-        title.textContent = "Add Task";
-
-
-        document.getElementById(
-            "editTaskId"
-        ).value = "";
-
-
-        document.getElementById(
-            "taskTitle"
-        ).value = "";
-
-
-        document.getElementById(
-            "taskPriority"
-        ).value = "medium";
-
-
-        document.getElementById(
-            "taskDate"
-        ).value =
-            getTodayString();
-
-
-        document.getElementById(
-            "taskTime"
-        ).value = "";
-
-
-        document.getElementById(
-            "taskDescription"
-        ).value = "";
-
-    }
-
-}
-
-
-function closeModal(id) {
-
-    document
-        .getElementById(id)
-        .classList.remove("show");
-
-}
-
-
-/* =====================================================
-   SAVE TASK
-===================================================== */
-
-function saveTask() {
-
-    const title =
-        document
-            .getElementById("taskTitle")
-            .value
-            .trim();
-
-    const subjectId =
-        document.getElementById(
-            "taskSubject"
-        ).value;
-
-    const priority =
-        document.getElementById(
-            "taskPriority"
-        ).value;
-
-    const date =
-        document.getElementById(
-            "taskDate"
-        ).value;
-
-    const time =
-        document.getElementById(
-            "taskTime"
-        ).value;
-
-    const description =
-        document.getElementById(
-            "taskDescription"
-        ).value
-        .trim();
-
-    const editId =
-        document.getElementById(
-            "editTaskId"
-        ).value;
-
-    const message =
-        document.getElementById(
-            "taskMessage"
-        );
-
-
-    if (!title || !subjectId || !date) {
-
-        showMessage(
-            message,
-            "Please enter title, subject and date.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    if (editId) {
-
-        const task =
-            currentData.tasks.find(
-                function (item) {
-                    return item.id === editId;
-                }
-            );
-
-
-        if (task) {
-
-            task.title = title;
-
-            task.subjectId = subjectId;
-
-            task.priority = priority;
-
-            task.date = date;
-
-            task.time = time;
-
-            task.description = description;
-
-        }
-
-    } else {
-
-        currentData.tasks.push({
-
-            id: generateId(),
-
-            title: title,
-
-            subjectId: subjectId,
-
-            priority: priority,
-
-            date: date,
-
-            time: time,
-
-            description: description,
-
-            completed: false,
-
-            createdAt:
-                new Date().toISOString()
-
-        });
-
-    }
-
-
-    saveUserData();
-
-    closeModal("taskModal");
-
-    refreshApplication();
-
-}
-
-
-/* =====================================================
-   DELETE TASK
-===================================================== */
-
-function deleteTask(id) {
-
-    const task =
-        currentData.tasks.find(
-            function (item) {
-                return item.id === id;
-            }
-        );
-
-
-    if (!task) {
-        return;
-    }
-
-
-    if (
-        !confirm(
-            `Delete "${task.title}"?`
-        )
-    ) {
-        return;
-    }
-
-
-    currentData.tasks =
-        currentData.tasks.filter(
-            function (item) {
-                return item.id !== id;
-            }
-        );
-
-
-    saveUserData();
-
-    refreshApplication();
-
-}
-
-
-/* =====================================================
-   COMPLETE TASK
-===================================================== */
-
-function toggleTask(id) {
-
-    const task =
-        currentData.tasks.find(
-            function (item) {
-                return item.id === id;
-            }
-        );
-
-
-    if (!task) {
-        return;
-    }
-
-
-    task.completed =
-        !task.completed;
-
-
-    saveUserData();
-
-    refreshApplication();
-
-}
+);
 
 
 /* =====================================================
    RENDER TASKS
-===================================================== */
+   ===================================================== */
+
+let currentFilter = "all";
+
 
 function renderTasks() {
 
-    const container =
-        document.getElementById(
-            "allTasks"
-        );
+    const taskList = $("#taskList");
+
+    const tasks = getTasks();
+
+    let filteredTasks = tasks;
 
 
-    if (!container) {
-        return;
-    }
+    if (currentFilter === "pending") {
 
-
-    const search =
-        (
-            document.getElementById(
-                "taskSearch"
-            )?.value || ""
-        )
-        .toLowerCase();
-
-
-    const filter =
-        document.getElementById(
-            "taskFilter"
-        )?.value || "all";
-
-
-    let tasks =
-        [...currentData.tasks];
-
-
-    if (search) {
-
-        tasks =
-            tasks.filter(
-                function (task) {
-
-                    return (
-                        task.title
-                            .toLowerCase()
-                            .includes(search) ||
-
-                        getSubjectName(
-                            task.subjectId
-                        )
-                            .toLowerCase()
-                            .includes(search)
-                    );
-
-                }
-            );
-
-    }
-
-
-    if (filter === "completed") {
-
-        tasks =
-            tasks.filter(
-                task => task.completed
-            );
-
-    }
-
-
-    if (filter === "pending") {
-
-        tasks =
+        filteredTasks =
             tasks.filter(
                 task => !task.completed
             );
@@ -1100,438 +448,308 @@ function renderTasks() {
     }
 
 
-    tasks.sort(
-        function (a, b) {
+    if (currentFilter === "completed") {
 
-            return (
-                (a.date + a.time)
-                .localeCompare(
-                    b.date + b.time
-                )
+        filteredTasks =
+            tasks.filter(
+                task => task.completed
             );
-
-        }
-    );
-
-
-    if (tasks.length === 0) {
-
-        container.innerHTML =
-            `
-            <div class="panel empty-state">
-                No tasks found.
-            </div>
-            `;
-
-        return;
 
     }
 
 
-    container.innerHTML =
-        tasks
+    if (filteredTasks.length === 0) {
+
+        taskList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📚</div>
+                <h3>No tasks found</h3>
+                <p>Add a study task to get started.</p>
+            </div>
+        `;
+
+        return;
+    }
+
+
+    taskList.innerHTML =
+        filteredTasks
+            .sort(
+                (a, b) =>
+                    new Date(a.date) -
+                    new Date(b.date)
+            )
             .map(
-                taskHTML
-            )
-            .join("");
+                task => `
 
-}
+                <div
+                    class="task-card ${
+                        task.completed
+                            ? "completed"
+                            : ""
+                    }"
+                >
 
+                    <input
+                        type="checkbox"
+                        class="task-checkbox"
+                        ${
+                            task.completed
+                                ? "checked"
+                                : ""
+                        }
+                        onchange="
+                            toggleTask(${task.id})
+                        "
+                    >
 
-/* =====================================================
-   TASK HTML
-===================================================== */
+                    <div class="task-info">
 
-function taskHTML(task) {
+                        <h3>
+                            ${escapeHTML(task.name)}
+                        </h3>
 
-    const subject =
-        getSubject(
-            task.subjectId
-        );
-
-
-    const subjectName =
-        subject
-            ? subject.name
-            : "Unknown Subject";
-
-
-    const priorityClass =
-        "priority-" +
-        task.priority;
-
-
-    return `
-        <div class="task-item">
-
-            <input
-                type="checkbox"
-                class="task-check"
-                ${task.completed ? "checked" : ""}
-                onchange="toggleTask('${task.id}')"
-            >
-
-            <div class="task-info">
-
-                <div class="task-title
-                    ${task.completed ? "completed" : ""}">
-
-                    ${escapeHTML(task.title)}
-
-                </div>
-
-                <div class="task-meta">
-
-                    📚 ${escapeHTML(subjectName)}
-                    &nbsp; • &nbsp;
-                    📅 ${formatDate(task.date)}
-
-                    ${task.time
-                        ? ` • ⏰ ${task.time}`
-                        : ""
-                    }
-
-                </div>
-
-                ${
-                    task.description
-                        ? `
                         <div class="task-meta">
-                            ${escapeHTML(task.description)}
+
+                            <span>
+                                📚
+                                ${escapeHTML(task.subject)}
+                            </span>
+
+                            <span>
+                                📅
+                                ${formatDate(task.date)}
+                            </span>
+
+                            <span
+                                class="priority-${task.priority}"
+                            >
+                                ${
+                                    capitalize(
+                                        task.priority
+                                    )
+                                }
+                                Priority
+                            </span>
+
                         </div>
-                        `
-                        : ""
-                }
 
-            </div>
+                    </div>
 
-            <span class="priority ${priorityClass}">
-                ${capitalize(task.priority)}
-            </span>
+                    <button
+                        class="delete-button"
+                        onclick="
+                            deleteTask(${task.id})
+                        "
+                        title="Delete task"
+                    >
+                        🗑️
+                    </button>
 
-            <div class="task-actions">
-
-                <button
-                    class="icon-btn"
-                    onclick="openTaskModal('${task.id}')"
-                    title="Edit"
-                >
-                    ✏️
-                </button>
-
-                <button
-                    class="icon-btn delete-btn"
-                    onclick="deleteTask('${task.id}')"
-                    title="Delete"
-                >
-                    🗑️
-                </button>
-
-            </div>
-
-        </div>
-    `;
-
-}
-
-
-/* =====================================================
-   TODAY TASKS
-===================================================== */
-
-function renderTodayTasks() {
-
-    const container =
-        document.getElementById(
-            "todayTasks"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    const today =
-        getTodayString();
-
-
-    const tasks =
-        currentData.tasks
-            .filter(
-                task =>
-                    task.date === today
-            )
-            .sort(
-                (a, b) =>
-                    (a.time || "")
-                        .localeCompare(
-                            b.time || ""
-                        )
-            );
-
-
-    if (tasks.length === 0) {
-
-        container.innerHTML =
+                </div>
             `
-            <div class="empty-state">
-                No tasks scheduled for today.
-            </div>
-            `;
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        tasks
-            .slice(0, 6)
-            .map(taskHTML)
+            )
             .join("");
 
 }
 
 
-/* =====================================================
-   UPCOMING TASKS
-===================================================== */
+function toggleTask(id) {
 
-function renderUpcomingTasks() {
+    const tasks = getTasks();
 
-    const container =
-        document.getElementById(
-            "upcomingTasks"
+    const task =
+        tasks.find(
+            item => item.id === id
         );
 
+    if (task) {
 
-    if (!container) {
-        return;
-    }
+        task.completed =
+            !task.completed;
 
+        saveTasks(tasks);
 
-    const today =
-        getTodayString();
+        renderTasks();
 
-
-    const tasks =
-        currentData.tasks
-            .filter(
-                task =>
-                    task.date > today &&
-                    !task.completed
-            )
-            .sort(
-                (a, b) =>
-                    a.date.localeCompare(
-                        b.date
-                    )
-            );
-
-
-    if (tasks.length === 0) {
-
-        container.innerHTML =
-            `
-            <div class="empty-state">
-                No upcoming tasks.
-            </div>
-            `;
-
-        return;
+        updateDashboard();
 
     }
-
-
-    container.innerHTML =
-        tasks
-            .slice(0, 5)
-            .map(taskHTML)
-            .join("");
 
 }
 
 
-/* =====================================================
-   STATISTICS
-===================================================== */
+window.toggleTask = toggleTask;
 
-function updateStatistics() {
+
+function deleteTask(id) {
+
+    const confirmed =
+        confirm(
+            "Are you sure you want to delete this task?"
+        );
+
+    if (!confirmed) return;
+
+    const tasks =
+        getTasks().filter(
+            task => task.id !== id
+        );
+
+    saveTasks(tasks);
+
+    renderTasks();
+
+    updateDashboard();
+
+}
+
+
+window.deleteTask = deleteTask;
+
+
+/* =====================================================
+   TASK FILTER
+   ===================================================== */
+
+$$(".filter-button").forEach(
+    button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                $$(".filter-button")
+                    .forEach(
+                        item =>
+                            item.classList.remove(
+                                "active"
+                            )
+                    );
+
+                button.classList.add(
+                    "active"
+                );
+
+                currentFilter =
+                    button.dataset.filter;
+
+                renderTasks();
+
+            }
+        );
+
+    }
+);
+
+
+/* =====================================================
+   DASHBOARD
+   ===================================================== */
+
+function updateDashboard() {
+
+    const tasks = getTasks();
 
     const total =
-        currentData.tasks.length;
-
+        tasks.length;
 
     const completed =
-        currentData.tasks
-            .filter(
-                task => task.completed
-            )
-            .length;
-
+        tasks.filter(
+            task => task.completed
+        ).length;
 
     const pending =
         total - completed;
-
 
     const progress =
         total === 0
             ? 0
             : Math.round(
-                completed / total * 100
+                (completed / total) * 100
             );
 
 
-    setText(
-        "totalTasks",
-        total
-    );
+    $("#totalTasks").textContent =
+        total;
 
-    setText(
-        "completedTasks",
-        completed
-    );
+    $("#completedTasks").textContent =
+        completed;
 
-    setText(
-        "pendingTasks",
-        pending
-    );
+    $("#pendingTasks").textContent =
+        pending;
 
-    setText(
-        "overallProgress",
-        progress + "%"
-    );
+    $("#progressPercent").textContent =
+        `${progress}%`;
+
+    $("#progressNumber").textContent =
+        `${progress}%`;
+
+    $("#progressBar").style.width =
+        `${progress}%`;
 
 
-    updateCircle(
-        "dashboardCircle",
-        "dashboardProgressText",
-        progress
-    );
+    let message =
+        "Start adding tasks to track your progress.";
 
-}
+    if (total > 0 && progress === 0) {
 
+        message =
+            "You have started your plan. Let's get going! 🚀";
 
-/* =====================================================
-   SUBJECTS
-===================================================== */
+    } else if (progress > 0 && progress < 50) {
 
-function openSubjectModal() {
+        message =
+            "Great start! Keep building your momentum. 💪";
 
-    document
-        .getElementById("subjectModal")
-        .classList.add("show");
+    } else if (progress >= 50 && progress < 100) {
 
+        message =
+            "You're doing great! Keep going. 🔥";
 
-    document.getElementById(
-        "subjectName"
-    ).value = "";
+    } else if (progress === 100) {
 
-
-    document.getElementById(
-        "subjectColor"
-    ).value = "#4f46e5";
-
-}
-
-
-function saveSubject() {
-
-    const name =
-        document
-            .getElementById(
-                "subjectName"
-            )
-            .value
-            .trim();
-
-    const color =
-        document.getElementById(
-            "subjectColor"
-        ).value;
-
-    const message =
-        document.getElementById(
-            "subjectMessage"
-        );
-
-
-    if (!name) {
-
-        showMessage(
-            message,
-            "Please enter a subject name.",
-            "error"
-        );
-
-        return;
+        message =
+            "Amazing! All your tasks are complete! 🎉";
 
     }
 
 
-    const duplicate =
-        currentData.subjects.some(
-            subject =>
-                subject.name.toLowerCase()
-                === name.toLowerCase()
-        );
+    $("#progressMessage").textContent =
+        message;
 
 
-    if (duplicate) {
-
-        showMessage(
-            message,
-            "This subject already exists.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    currentData.subjects.push({
-
-        id: generateId(),
-
-        name: name,
-
-        color: color
-
-    });
-
-
-    saveUserData();
-
-    closeModal("subjectModal");
-
-    refreshApplication();
+    renderTodayTasks();
 
 }
 
 
-function renderSubjects() {
+function renderTodayTasks() {
 
     const container =
-        document.getElementById(
-            "subjectGrid"
+        $("#todayTasks");
+
+    const tasks =
+        getTasks();
+
+    const today =
+        getTodayString();
+
+    const todayTasks =
+        tasks.filter(
+            task => task.date === today
         );
 
 
-    if (!container) {
-        return;
-    }
+    if (todayTasks.length === 0) {
 
-
-    if (currentData.subjects.length === 0) {
-
-        container.innerHTML =
-            `
-            <div class="panel empty-state">
-                No subjects yet. Add your first subject.
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🌟</div>
+                <h3>No tasks today</h3>
+                <p>Enjoy your day or add a new task.</p>
             </div>
-            `;
+        `;
 
         return;
 
@@ -1539,95 +757,34 @@ function renderSubjects() {
 
 
     container.innerHTML =
-        currentData.subjects
+        todayTasks
             .map(
-                function (subject) {
+                task => `
 
-                    const total =
-                        currentData.tasks
-                            .filter(
-                                task =>
-                                    task.subjectId
-                                    === subject.id
-                            )
-                            .length;
+                <div
+                    class="preview-task ${
+                        task.completed
+                            ? "completed"
+                            : ""
+                    }"
+                >
 
+                    <div class="preview-check"></div>
 
-                    const completed =
-                        currentData.tasks
-                            .filter(
-                                task =>
-                                    task.subjectId
-                                    === subject.id &&
-                                    task.completed
-                            )
-                            .length;
+                    <div>
 
+                        <strong>
+                            ${escapeHTML(task.name)}
+                        </strong>
 
-                    const progress =
-                        total === 0
-                            ? 0
-                            : Math.round(
-                                completed /
-                                total *
-                                100
-                            );
+                        <small>
+                            ${escapeHTML(task.subject)}
+                        </small>
 
+                    </div>
 
-                    return `
-                        <div
-                            class="subject-card"
-                            style="
-                                border-left-color:
-                                ${subject.color};
-                            "
-                        >
-
-                            <h3>
-                                ${escapeHTML(
-                                    subject.name
-                                )}
-                            </h3>
-
-                            <p>
-                                ${total} task(s)
-                                • ${progress}% completed
-                            </p>
-
-                            <div
-                                class="progress-bar"
-                                style="margin-top:15px;"
-                            >
-
-                                <div
-                                    class="progress-fill"
-                                    style="
-                                        width:${progress}%;
-                                        background:${subject.color};
-                                    "
-                                ></div>
-
-                            </div>
-
-                            <div class="subject-actions">
-
-                                <button
-                                    class="icon-btn delete-btn"
-                                    onclick="
-                                        deleteSubject(
-                                            '${subject.id}'
-                                        )
-                                    "
-                                >
-                                    🗑️
-                                </button>
-
-                            </div>
-
-                        </div>
-                    `;
-
-                }
+                </div>
+            `
             )
             .join("");
 
@@ -1635,651 +792,463 @@ function renderSubjects() {
 
 
 /* =====================================================
-   DELETE SUBJECT
-===================================================== */
+   SCHEDULE
+   ===================================================== */
 
-function deleteSubject(id) {
+function getSchedules() {
 
-    const subject =
-        getSubject(id);
+    try {
 
-
-    if (!subject) {
-        return;
-    }
-
-
-    const taskCount =
-        currentData.tasks
-            .filter(
-                task =>
-                    task.subjectId === id
+        return JSON.parse(
+            localStorage.getItem(
+                STORAGE_KEYS.schedules
             )
-            .length;
+        ) || [];
 
+    } catch {
 
-    if (taskCount > 0) {
-
-        alert(
-            "You cannot delete this subject while it has tasks. Delete or edit those tasks first."
-        );
-
-        return;
+        return [];
 
     }
-
-
-    if (
-        !confirm(
-            `Delete subject "${subject.name}"?`
-        )
-    ) {
-        return;
-    }
-
-
-    currentData.subjects =
-        currentData.subjects.filter(
-            subject =>
-                subject.id !== id
-        );
-
-
-    saveUserData();
-
-    refreshApplication();
 
 }
 
 
-/* =====================================================
-   SUBJECT SELECTS
-===================================================== */
+function saveSchedules(schedules) {
 
-function renderSubjectSelects() {
+    localStorage.setItem(
+        STORAGE_KEYS.schedules,
+        JSON.stringify(schedules)
+    );
 
-    const taskSelect =
-        document.getElementById(
-            "taskSubject"
+}
+
+
+const scheduleModal =
+    $("#scheduleModal");
+
+
+$("#openScheduleModal").addEventListener(
+    "click",
+    () => {
+
+        scheduleModal.classList.add(
+            "show"
         );
 
-    const scheduleSelect =
-        document.getElementById(
-            "scheduleSubject"
+    }
+);
+
+
+$("#scheduleForm").addEventListener(
+    "submit",
+    event => {
+
+        event.preventDefault();
+
+        const schedule = {
+
+            id: Date.now(),
+
+            subject:
+                $("#scheduleSubject")
+                    .value
+                    .trim(),
+
+            date:
+                $("#scheduleDate").value,
+
+            time:
+                $("#scheduleTime").value,
+
+            duration:
+                $("#scheduleDuration").value
+
+        };
+
+
+        const schedules =
+            getSchedules();
+
+        schedules.push(schedule);
+
+        saveSchedules(schedules);
+
+        $("#scheduleForm").reset();
+
+        scheduleModal.classList.remove(
+            "show"
         );
 
+        renderSchedules();
 
-    const options =
-        currentData.subjects
+    }
+);
+
+
+function renderSchedules() {
+
+    const container =
+        $("#scheduleList");
+
+    const schedules =
+        getSchedules();
+
+
+    if (schedules.length === 0) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🗓️</div>
+                <h3>No study sessions</h3>
+                <p>Create your first study session.</p>
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    schedules.sort(
+        (a, b) => {
+
+            const first =
+                new Date(
+                    `${a.date}T${a.time}`
+                );
+
+            const second =
+                new Date(
+                    `${b.date}T${b.time}`
+                );
+
+            return first - second;
+
+        }
+    );
+
+
+    container.innerHTML =
+        schedules
             .map(
-                subject =>
-                    `
-                    <option value="${subject.id}">
-                        ${escapeHTML(subject.name)}
-                    </option>
-                    `
+                schedule => `
+
+                <div class="schedule-card">
+
+                    <button
+                        class="schedule-delete"
+                        onclick="
+                            deleteSchedule(${schedule.id})
+                        "
+                    >
+                        🗑️
+                    </button>
+
+                    <div class="schedule-time">
+                        ${formatTime(schedule.time)}
+                    </div>
+
+                    <h3>
+                        📚
+                        ${escapeHTML(schedule.subject)}
+                    </h3>
+
+                    <p>
+                        📅
+                        ${formatDate(schedule.date)}
+                    </p>
+
+                    <p>
+                        ⏱️
+                        ${schedule.duration} minutes
+                    </p>
+
+                </div>
+
+            `
             )
             .join("");
-
-
-    if (taskSelect) {
-        taskSelect.innerHTML = options;
-    }
-
-    if (scheduleSelect) {
-        scheduleSelect.innerHTML = options;
-    }
-
-}
-
-
-/* =====================================================
-   TIMETABLE
-===================================================== */
-
-const timetableHours = [
-    "06:00",
-    "07:00",
-    "08:00",
-    "09:00",
-    "10:00",
-    "11:00",
-    "12:00",
-    "13:00",
-    "14:00",
-    "15:00",
-    "16:00",
-    "17:00",
-    "18:00",
-    "19:00",
-    "20:00",
-    "21:00"
-];
-
-
-const timetableDays = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday"
-];
-
-
-function renderTimetable() {
-
-    const tbody =
-        document.getElementById(
-            "timetableBody"
-        );
-
-
-    if (!tbody) {
-        return;
-    }
-
-
-    tbody.innerHTML =
-        timetableHours
-            .map(
-                function (hour) {
-
-                    let row =
-                        `<tr>
-                            <th>${formatTime(hour)}</th>`;
-
-
-                    timetableDays.forEach(
-                        function (day) {
-
-                            const schedules =
-                                currentData.schedules
-                                    .filter(
-                                        schedule =>
-                                            schedule.day === day &&
-                                            schedule.start <= hour &&
-                                            schedule.end > hour
-                                    );
-
-
-                            if (schedules.length) {
-
-                                row +=
-                                    `
-                                    <td>
-                                    ${
-                                        schedules
-                                            .map(
-                                                function (schedule) {
-
-                                                    const subject =
-                                                        getSubject(
-                                                            schedule.subjectId
-                                                        );
-
-                                                    return `
-                                                        <div
-                                                            class="schedule-cell"
-                                                            style="
-                                                                background:
-                                                                ${subject
-                                                                    ? subject.color + "22"
-                                                                    : "#eef2ff"
-                                                                };
-                                                                color:
-                                                                ${subject
-                                                                    ? subject.color
-                                                                    : "#3730a3"
-                                                                };
-                                                            "
-                                                        >
-
-                                                            ${escapeHTML(
-                                                                subject
-                                                                    ? subject.name
-                                                                    : "Study"
-                                                            )}
-
-                                                            <button
-                                                                onclick="
-                                                                    deleteSchedule(
-                                                                        '${schedule.id}'
-                                                                    )
-                                                                "
-                                                            >
-                                                                ×
-                                                            </button>
-
-                                                        </div>
-                                                    `;
-
-                                                }
-                                            )
-                                            .join("")
-                                    }
-                                    </td>
-                                    `;
-
-                            } else {
-
-                                row += "<td></td>";
-
-                            }
-
-                        }
-                    );
-
-
-                    row += "</tr>";
-
-                    return row;
-
-                }
-            )
-            .join("");
-
-}
-
-
-/* =====================================================
-   SCHEDULE MODAL
-===================================================== */
-
-function openScheduleModal() {
-
-    if (currentData.subjects.length === 0) {
-
-        alert(
-            "Please create a subject first."
-        );
-
-        showSectionById("subjects");
-
-        return;
-
-    }
-
-
-    document
-        .getElementById(
-            "scheduleModal"
-        )
-        .classList.add("show");
-
-
-    renderSubjectSelects();
-
-}
-
-
-function saveSchedule() {
-
-    const day =
-        document.getElementById(
-            "scheduleDay"
-        ).value;
-
-    const start =
-        document.getElementById(
-            "scheduleStart"
-        ).value;
-
-    const end =
-        document.getElementById(
-            "scheduleEnd"
-        ).value;
-
-    const subjectId =
-        document.getElementById(
-            "scheduleSubject"
-        ).value;
-
-    const message =
-        document.getElementById(
-            "scheduleMessage"
-        );
-
-
-    if (!day || !start || !end || !subjectId) {
-
-        showMessage(
-            message,
-            "Please fill in all fields.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    if (start >= end) {
-
-        showMessage(
-            message,
-            "End time must be after start time.",
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    currentData.schedules.push({
-
-        id: generateId(),
-
-        day: day,
-
-        start: start,
-
-        end: end,
-
-        subjectId: subjectId
-
-    });
-
-
-    saveUserData();
-
-    closeModal("scheduleModal");
-
-    refreshApplication();
 
 }
 
 
 function deleteSchedule(id) {
 
-    if (
-        !confirm(
-            "Delete this schedule?"
-        )
-    ) {
-        return;
-    }
-
-
-    currentData.schedules =
-        currentData.schedules.filter(
-            schedule =>
-                schedule.id !== id
+    const schedules =
+        getSchedules().filter(
+            item => item.id !== id
         );
 
+    saveSchedules(schedules);
 
-    saveUserData();
+    renderSchedules();
 
-    refreshApplication();
+}
+
+
+window.deleteSchedule = deleteSchedule;
+
+
+/* =====================================================
+   NOTES
+   ===================================================== */
+
+const notesArea =
+    $("#notesArea");
+
+
+function loadNotes() {
+
+    notesArea.value =
+        localStorage.getItem(
+            STORAGE_KEYS.notes
+        ) || "";
+
+    updateCharacterCount();
+
+}
+
+
+$("#saveNotes").addEventListener(
+    "click",
+    () => {
+
+        localStorage.setItem(
+            STORAGE_KEYS.notes,
+            notesArea.value
+        );
+
+        alert(
+            "Your notes have been saved successfully! 💾"
+        );
+
+    }
+);
+
+
+notesArea.addEventListener(
+    "input",
+    updateCharacterCount
+);
+
+
+function updateCharacterCount() {
+
+    const count =
+        notesArea.value.length;
+
+    $("#characterCount").textContent =
+        `${count} characters`;
 
 }
 
 
 /* =====================================================
-   PROGRESS
-===================================================== */
+   TIMER
+   ===================================================== */
 
-function renderProgress() {
+let timerSeconds = 25 * 60;
 
-    const total =
-        currentData.tasks.length;
+let timerInterval = null;
 
-
-    const completed =
-        currentData.tasks
-            .filter(
-                task =>
-                    task.completed
-            )
-            .length;
+let timerRunning = false;
 
 
-    const pending =
-        total - completed;
+function updateTimerDisplay() {
 
-
-    const progress =
-        total === 0
-            ? 0
-            : Math.round(
-                completed /
-                total *
-                100
-            );
-
-
-    updateCircle(
-        "bigProgressCircle",
-        "bigProgressText",
-        progress
-    );
-
-
-    const completedPercent =
-        total === 0
-            ? 0
-            : Math.round(
-                completed /
-                total *
-                100
-            );
-
-
-    const pendingPercent =
-        total === 0
-            ? 0
-            : Math.round(
-                pending /
-                total *
-                100
-            );
-
-
-    setText(
-        "completedPercent",
-        completedPercent + "%"
-    );
-
-    setText(
-        "pendingPercent",
-        pendingPercent + "%"
-    );
-
-
-    const completedBar =
-        document.getElementById(
-            "completedBar"
+    const minutes =
+        Math.floor(
+            timerSeconds / 60
         );
 
-    const pendingBar =
-        document.getElementById(
-            "pendingBar"
-        );
+    const seconds =
+        timerSeconds % 60;
 
-
-    if (completedBar) {
-
-        completedBar.style.width =
-            completedPercent + "%";
-
-    }
-
-
-    if (pendingBar) {
-
-        pendingBar.style.width =
-            pendingPercent + "%";
-
-    }
-
-
-    renderSubjectProgress();
+    $("#timerDisplay").textContent =
+        `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 
 }
 
 
-/* =====================================================
-   SUBJECT PROGRESS
-===================================================== */
+$("#startTimer").addEventListener(
+    "click",
+    () => {
 
-function renderSubjectProgress() {
+        if (timerRunning) return;
 
-    const container =
-        document.getElementById(
-            "subjectProgress"
+        timerRunning = true;
+
+        $("#timerLabel").textContent =
+            "Studying... 🔥";
+
+
+        timerInterval =
+            setInterval(
+                () => {
+
+                    if (timerSeconds > 0) {
+
+                        timerSeconds--;
+
+                        updateTimerDisplay();
+
+                    } else {
+
+                        clearInterval(
+                            timerInterval
+                        );
+
+                        timerRunning = false;
+
+                        $("#timerLabel").textContent =
+                            "Session Complete! 🎉";
+
+                        alert(
+                            "Study session completed! Great work! 🎉"
+                        );
+
+                    }
+
+                },
+                1000
+            );
+
+    }
+);
+
+
+$("#pauseTimer").addEventListener(
+    "click",
+    () => {
+
+        clearInterval(
+            timerInterval
         );
 
+        timerRunning = false;
 
-    if (!container) {
-        return;
-    }
-
-
-    if (currentData.subjects.length === 0) {
-
-        container.innerHTML =
-            `
-            <div class="empty-state">
-                Add subjects to see performance.
-            </div>
-            `;
-
-        return;
+        $("#timerLabel").textContent =
+            "Paused ⏸️";
 
     }
+);
 
 
-    container.innerHTML =
-        currentData.subjects
-            .map(
-                function (subject) {
+$("#resetTimer").addEventListener(
+    "click",
+    () => {
 
-                    const tasks =
-                        currentData.tasks
-                            .filter(
-                                task =>
-                                    task.subjectId
-                                    === subject.id
-                            );
+        clearInterval(
+            timerInterval
+        );
 
+        timerRunning = false;
 
-                    const completed =
-                        tasks.filter(
-                            task =>
-                                task.completed
-                        ).length;
+        timerSeconds =
+            25 * 60;
 
+        updateTimerDisplay();
 
-                    const progress =
-                        tasks.length === 0
-                            ? 0
-                            : Math.round(
-                                completed /
-                                tasks.length *
-                                100
-                            );
+        $("#timerLabel").textContent =
+            "Focus Session";
+
+    }
+);
 
 
-                    return `
-                        <div class="subject-progress-row">
+$$(".timer-presets button")
+    .forEach(
+        button => {
 
-                            <div class="subject-progress-header">
+            button.addEventListener(
+                "click",
+                () => {
 
-                                <span>
-                                    ${escapeHTML(
-                                        subject.name
-                                    )}
-                                </span>
+                    clearInterval(
+                        timerInterval
+                    );
 
-                                <strong>
-                                    ${progress}%
-                                </strong>
+                    timerRunning = false;
 
-                            </div>
+                    const minutes =
+                        Number(
+                            button.dataset.minutes
+                        );
 
-                            <div class="progress-bar">
+                    timerSeconds =
+                        minutes * 60;
 
-                                <div
-                                    class="progress-fill"
-                                    style="
-                                        width:${progress}%;
-                                        background:${subject.color};
-                                    "
-                                ></div>
+                    updateTimerDisplay();
 
-                            </div>
-
-                        </div>
-                    `;
+                    $("#timerLabel")
+                        .textContent =
+                        `${minutes}-Minute Session`;
 
                 }
-            )
-            .join("");
+            );
 
-}
+        }
+);
 
 
 /* =====================================================
-   DARK MODE
-===================================================== */
+   MODAL CLOSE
+   ===================================================== */
 
-function toggleTheme() {
+$$(".close-modal").forEach(
+    button => {
 
-    document.body.classList.toggle(
-        "dark"
-    );
+        button.addEventListener(
+            "click",
+            () => {
 
+                const modalId =
+                    button.dataset.close;
 
-    const dark =
-        document.body.classList.contains(
-            "dark"
-        );
+                const modal =
+                    document.getElementById(
+                        modalId
+                    );
 
+                modal.classList.remove(
+                    "show"
+                );
 
-    localStorage.setItem(
-        "studyPlannerDarkMode",
-        dark
-    );
-
-}
-
-
-(function loadTheme() {
-
-    const dark =
-        localStorage.getItem(
-            "studyPlannerDarkMode"
-        );
-
-
-    if (dark === "true") {
-
-        document.body.classList.add(
-            "dark"
+            }
         );
 
     }
+);
 
-})();
+
+$$(".modal").forEach(
+    modal => {
+
+        modal.addEventListener(
+            "click",
+            event => {
+
+                if (
+                    event.target === modal
+                ) {
+
+                    modal.classList.remove(
+                        "show"
+                    );
+
+                }
+
+            }
+        );
+
+    }
+);
 
 
 /* =====================================================
-   UTILITY FUNCTIONS
-===================================================== */
-
-function generateId() {
-
-    return (
-        Date.now().toString(36) +
-        Math.random()
-            .toString(36)
-            .substring(2, 9)
-    );
-
-}
-
+   HELPERS
+   ===================================================== */
 
 function getTodayString() {
 
@@ -2298,7 +1267,6 @@ function getTodayString() {
             date.getDate()
         ).padStart(2, "0");
 
-
     return `${year}-${month}-${day}`;
 
 }
@@ -2306,16 +1274,12 @@ function getTodayString() {
 
 function formatDate(dateString) {
 
-    if (!dateString) {
-        return "";
-    }
-
+    if (!dateString) return "No date";
 
     const date =
         new Date(
-            dateString + "T00:00:00"
+            `${dateString}T00:00:00`
         );
-
 
     return date.toLocaleDateString(
         undefined,
@@ -2329,26 +1293,20 @@ function formatDate(dateString) {
 }
 
 
-function formatTime(time) {
+function formatTime(timeString) {
 
-    if (!time) {
-        return "";
-    }
-
+    if (!timeString) return "";
 
     const [hours, minutes] =
-        time.split(":");
-
+        timeString.split(":");
 
     const date =
         new Date();
-
 
     date.setHours(
         Number(hours),
         Number(minutes)
     );
-
 
     return date.toLocaleTimeString(
         undefined,
@@ -2361,201 +1319,72 @@ function formatTime(time) {
 }
 
 
-function capitalize(text) {
+function capitalize(value) {
 
-    if (!text) {
-        return "";
-    }
-
+    if (!value) return "";
 
     return (
-        text.charAt(0).toUpperCase() +
-        text.slice(1)
+        value.charAt(0).toUpperCase() +
+        value.slice(1)
     );
 
 }
 
 
-function getSubject(id) {
-
-    return currentData.subjects.find(
-        subject =>
-            subject.id === id
-    );
-
-}
-
-
-function getSubjectName(id) {
-
-    const subject =
-        getSubject(id);
-
-
-    return subject
-        ? subject.name
-        : "";
-
-}
-
-
-function setText(id, value) {
-
-    const element =
-        document.getElementById(id);
-
-
-    if (element) {
-        element.textContent = value;
-    }
-
-}
-
-
-function showMessage(
-    element,
-    message,
-    type
-) {
-
-    if (!element) {
-        return;
-    }
-
-
-    element.textContent = message;
-
-    element.className =
-        "message " + type;
-
-}
-
-
-function updateCircle(
-    circleId,
-    textId,
-    percentage
-) {
-
-    const circle =
-        document.getElementById(
-            circleId
-        );
-
-
-    const text =
-        document.getElementById(
-            textId
-        );
-
-
-    if (circle) {
-
-        const degrees =
-            percentage * 3.6;
-
-
-        circle.style.background =
-            `
-            conic-gradient(
-                var(--primary)
-                ${degrees}deg,
-                #e5e7eb
-                ${degrees}deg
-            )
-            `;
-
-    }
-
-
-    if (text) {
-
-        text.textContent =
-            percentage + "%";
-
-    }
-
-}
-
+/*
+    Prevent user-entered text from being
+    interpreted as HTML.
+*/
 
 function escapeHTML(value) {
 
     return String(value)
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
-        );
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 
 }
 
 
 /* =====================================================
-   CLOSE MODAL WHEN CLICKING OUTSIDE
-===================================================== */
+   INITIALIZATION
+   ===================================================== */
 
-window.addEventListener(
-    "click",
-    function (event) {
+function initializeApplication() {
 
-        document
-            .querySelectorAll(".modal")
-            .forEach(
-                function (modal) {
+    updateDate();
 
-                    if (
-                        event.target === modal
-                    ) {
+    updateUserInformation();
 
-                        modal.classList.remove(
-                            "show"
-                        );
+    renderTasks();
 
-                    }
+    renderSchedules();
 
-                }
-            );
+    updateDashboard();
 
-    }
-);
+    loadNotes();
+
+    updateTimerDisplay();
+
+}
 
 
 /* =====================================================
-   KEYBOARD ESCAPE
-===================================================== */
+   AUTO LOGIN IF SESSION EXISTS
+   ===================================================== */
 
 document.addEventListener(
-    "keydown",
-    function (event) {
+    "DOMContentLoaded",
+    () => {
 
-        if (event.key === "Escape") {
+        const session =
+            getSession();
 
-            document
-                .querySelectorAll(".modal")
-                .forEach(
-                    function (modal) {
+        if (session && getAccount()) {
 
-                        modal.classList.remove(
-                            "show"
-                        );
-
-                    }
-                );
+            openApplication();
 
         }
 
