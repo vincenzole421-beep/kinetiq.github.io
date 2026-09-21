@@ -1,2310 +1,815 @@
-```javascript
-/* =========================================================
-   STUDYFLOW
-   STUDENT LOGIN + STUDY PLANNER
-========================================================= */
+/* =====================================================
+   STUDY PLANNER APPLICATION
+===================================================== */
 
 
-/* =========================================================
-   AUTHENTICATION
-========================================================= */
+/* =====================================================
+   GLOBAL STATE
+===================================================== */
 
 let currentUser = null;
 
-const USERS_KEY = "studyflow_users";
-const SESSION_KEY = "studyflow_session";
+let currentData = {
+    tasks: [],
+    subjects: [],
+    schedules: []
+};
 
+
+/* =====================================================
+   STORAGE HELPERS
+===================================================== */
 
 function getUsers() {
 
-    return JSON.parse(
-        localStorage.getItem(USERS_KEY)
-    ) || {};
+    try {
+
+        return JSON.parse(
+            localStorage.getItem("studyPlannerUsers")
+        ) || {};
+
+    } catch (error) {
+
+        console.error("Could not read users:", error);
+
+        return {};
+
+    }
+
 }
 
 
 function saveUsers(users) {
 
     localStorage.setItem(
-        USERS_KEY,
+        "studyPlannerUsers",
         JSON.stringify(users)
     );
+
 }
 
 
-/*
-    SHA-256 password hashing.
+function getUserData(studentId) {
 
-    IMPORTANT:
-    This is suitable for this frontend demonstration,
-    but real production authentication should happen
-    on a backend/server.
-*/
+    try {
 
-async function hashPassword(password) {
+        return JSON.parse(
+            localStorage.getItem(
+                "studyPlannerData_" + studentId
+            )
+        ) || {
+            tasks: [],
+            subjects: [],
+            schedules: []
+        };
 
-    const encoder =
-        new TextEncoder();
+    } catch (error) {
 
-    const data =
-        encoder.encode(password);
+        console.error("Could not read user data:", error);
 
-    const hash =
-        await crypto.subtle.digest(
-            "SHA-256",
-            data
-        );
+        return {
+            tasks: [],
+            subjects: [],
+            schedules: []
+        };
 
-    return Array.from(
-        new Uint8Array(hash)
-    )
-        .map(byte =>
-            byte.toString(16).padStart(2, "0")
-        )
-        .join("");
+    }
+
 }
 
 
-/* =========================================================
-   LOGIN / REGISTER UI
-========================================================= */
+function saveUserData() {
+
+    if (!currentUser) {
+        return;
+    }
+
+    localStorage.setItem(
+        "studyPlannerData_" + currentUser.studentId,
+        JSON.stringify(currentData)
+    );
+
+}
+
+
+/* =====================================================
+   PAGE INITIALIZATION
+===================================================== */
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const savedStudentId =
+        localStorage.getItem("studyPlannerLoggedIn");
+
+    if (savedStudentId) {
+
+        const users = getUsers();
+
+        if (users[savedStudentId]) {
+
+            currentUser = users[savedStudentId];
+
+            loadUserData();
+
+            showApp();
+
+        } else {
+
+            localStorage.removeItem(
+                "studyPlannerLoggedIn"
+            );
+
+        }
+
+    }
+
+    updateDate();
+
+});
+
+
+/* =====================================================
+   AUTH UI
+===================================================== */
 
 function showRegister() {
 
     document
-        .getElementById("loginBox")
+        .getElementById("loginForm")
         .classList.add("hidden");
 
     document
-        .getElementById("registerBox")
+        .getElementById("registerForm")
         .classList.remove("hidden");
+
+    clearMessages();
+
 }
 
 
 function showLogin() {
 
     document
-        .getElementById("registerBox")
+        .getElementById("registerForm")
         .classList.add("hidden");
 
     document
-        .getElementById("loginBox")
+        .getElementById("loginForm")
         .classList.remove("hidden");
+
+    clearMessages();
+
 }
 
 
-function togglePassword(id) {
+function clearMessages() {
 
-    const input =
-        document.getElementById(id);
+    document.getElementById("loginMessage").textContent = "";
 
-    input.type =
-        input.type === "password"
-            ? "text"
-            : "password";
+    document.getElementById("registerMessage").textContent = "";
+
 }
 
 
-/* =========================================================
+/* =====================================================
    REGISTER
-========================================================= */
-
-document
-    .getElementById("registerForm")
-    .addEventListener(
-        "submit",
-        async function(event) {
-
-            event.preventDefault();
-
-
-            const studentId =
-                document
-                    .getElementById("registerStudentId")
-                    .value
-                    .trim()
-                    .toUpperCase();
-
-
-            const name =
-                document
-                    .getElementById("registerName")
-                    .value
-                    .trim();
-
-
-            const password =
-                document
-                    .getElementById("registerPassword")
-                    .value;
-
-
-            const confirmPassword =
-                document
-                    .getElementById("registerConfirmPassword")
-                    .value;
-
-
-            const message =
-                document
-                    .getElementById("registerMessage");
-
-
-            message.className =
-                "auth-message";
-
-
-            /* Validate Student ID */
-
-            if (!/^[A-Z0-9_-]{4,30}$/.test(studentId)) {
-
-                message.textContent =
-                    "Student ID can contain letters, numbers, _ or -.";
-
-                message.classList.add("error");
-
-                return;
-            }
-
-
-            /* Validate password */
-
-            if (password.length < 8) {
-
-                message.textContent =
-                    "Password must contain at least 8 characters.";
-
-                message.classList.add("error");
-
-                return;
-            }
-
-
-            if (password !== confirmPassword) {
-
-                message.textContent =
-                    "Passwords do not match.";
-
-                message.classList.add("error");
-
-                return;
-            }
-
-
-            const users =
-                getUsers();
-
-
-            if (users[studentId]) {
-
-                message.textContent =
-                    "This Student ID already exists.";
-
-                message.classList.add("error");
-
-                return;
-            }
-
-
-            const passwordHash =
-                await hashPassword(password);
-
-
-            users[studentId] = {
-
-                studentId,
-
-                name,
-
-                passwordHash,
-
-                createdAt:
-                    new Date().toISOString()
-
-            };
-
-
-            saveUsers(users);
-
-
-            message.textContent =
-                "Account created successfully. You can now login.";
-
-            message.classList.add("success");
-
-
-            document
-                .getElementById("registerForm")
-                .reset();
-
-
-            setTimeout(
-                showLogin,
-                1000
-            );
-        }
-    );
-
-
-/* =========================================================
-   LOGIN
-========================================================= */
-
-document
-    .getElementById("loginForm")
-    .addEventListener(
-        "submit",
-        async function(event) {
-
-            event.preventDefault();
-
-
-            const studentId =
-                document
-                    .getElementById("loginStudentId")
-                    .value
-                    .trim()
-                    .toUpperCase();
-
-
-            const password =
-                document
-                    .getElementById("loginPassword")
-                    .value;
-
-
-            const message =
-                document
-                    .getElementById("loginMessage");
-
-
-            const users =
-                getUsers();
-
-
-            const user =
-                users[studentId];
-
-
-            if (!user) {
-
-                message.textContent =
-                    "Invalid Student ID or password.";
-
-                message.className =
-                    "auth-message error";
-
-                return;
-            }
-
-
-            const passwordHash =
-                await hashPassword(password);
-
-
-            if (
-                passwordHash !==
-                user.passwordHash
-            ) {
-
-                message.textContent =
-                    "Invalid Student ID or password.";
-
-                message.className =
-                    "auth-message error";
-
-                return;
-            }
-
-
-            /*
-                Create login session.
-
-                The session only stores the Student ID.
-                The password is never stored in the session.
-            */
-
-            sessionStorage.setItem(
-                SESSION_KEY,
-                studentId
-            );
-
-
-            currentUser = user;
-
-
-            message.textContent =
-                "Login successful.";
-
-            message.className =
-                "auth-message success";
-
-
-            document
-                .getElementById("loginForm")
-                .reset();
-
-
-            setTimeout(
-                openApplication,
-                300
-            );
-
-        }
-    );
-
-
-/* =========================================================
-   SESSION
-========================================================= */
-
-function checkSession() {
-
-    const sessionStudentId =
-        sessionStorage.getItem(
-            SESSION_KEY
+===================================================== */
+
+function register() {
+
+    const name =
+        document
+            .getElementById("registerName")
+            .value
+            .trim();
+
+    const studentId =
+        document
+            .getElementById("registerStudentId")
+            .value
+            .trim()
+            .toUpperCase();
+
+    const password =
+        document
+            .getElementById("registerPassword")
+            .value;
+
+    const confirmPassword =
+        document
+            .getElementById("registerConfirmPassword")
+            .value;
+
+    const message =
+        document.getElementById("registerMessage");
+
+
+    if (!name || !studentId || !password || !confirmPassword) {
+
+        showMessage(
+            message,
+            "Please fill in all fields.",
+            "error"
         );
 
-
-    if (!sessionStudentId) {
-
-        showAuth();
-
         return;
+
     }
 
 
-    const users =
-        getUsers();
+    if (studentId.length < 3) {
+
+        showMessage(
+            message,
+            "Student ID must contain at least 3 characters.",
+            "error"
+        );
+
+        return;
+
+    }
 
 
-    const user =
-        users[sessionStudentId];
+    if (password.length < 6) {
+
+        showMessage(
+            message,
+            "Password must contain at least 6 characters.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    if (password !== confirmPassword) {
+
+        showMessage(
+            message,
+            "Passwords do not match.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const users = getUsers();
+
+
+    if (users[studentId]) {
+
+        showMessage(
+            message,
+            "This Student ID already exists.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    users[studentId] = {
+
+        name: name,
+
+        studentId: studentId,
+
+        password: password,
+
+        createdAt: new Date().toISOString()
+
+    };
+
+
+    saveUsers(users);
+
+
+    localStorage.setItem(
+        "studyPlannerData_" + studentId,
+        JSON.stringify({
+            tasks: [],
+            subjects: [
+                {
+                    id: generateId(),
+                    name: "Mathematics",
+                    color: "#4f46e5"
+                },
+                {
+                    id: generateId(),
+                    name: "Science",
+                    color: "#10b981"
+                },
+                {
+                    id: generateId(),
+                    name: "English",
+                    color: "#f59e0b"
+                }
+            ],
+            schedules: []
+        })
+    );
+
+
+    showMessage(
+        message,
+        "Account created successfully. You can now login.",
+        "success"
+    );
+
+
+    setTimeout(function () {
+
+        document.getElementById(
+            "loginStudentId"
+        ).value = studentId;
+
+        document.getElementById(
+            "loginPassword"
+        ).value = "";
+
+        showLogin();
+
+    }, 1000);
+
+}
+
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+function login() {
+
+    const studentId =
+        document
+            .getElementById("loginStudentId")
+            .value
+            .trim()
+            .toUpperCase();
+
+    const password =
+        document
+            .getElementById("loginPassword")
+            .value;
+
+    const message =
+        document.getElementById("loginMessage");
+
+
+    if (!studentId || !password) {
+
+        showMessage(
+            message,
+            "Enter your Student ID and password.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const users = getUsers();
+
+    const user = users[studentId];
 
 
     if (!user) {
 
-        sessionStorage.removeItem(
-            SESSION_KEY
+        showMessage(
+            message,
+            "Student ID not found.",
+            "error"
         );
 
-        showAuth();
+        return;
+
+    }
+
+
+    if (user.password !== password) {
+
+        showMessage(
+            message,
+            "Incorrect password.",
+            "error"
+        );
 
         return;
+
     }
 
 
     currentUser = user;
 
-    openApplication();
+    localStorage.setItem(
+        "studyPlannerLoggedIn",
+        studentId
+    );
+
+
+    loadUserData();
+
+    showApp();
+
 }
 
 
-function showAuth() {
-
-    document
-        .getElementById("authScreen")
-        .style.display = "flex";
-
-    document
-        .getElementById("app")
-        .classList.add("app-hidden");
-}
-
-
-function openApplication() {
-
-    document
-        .getElementById("authScreen")
-        .style.display = "none";
-
-    document
-        .getElementById("app")
-        .classList.remove("app-hidden");
-
-
-    document
-        .getElementById("studentName")
-        .textContent =
-        currentUser.name;
-
-
-    document
-        .getElementById("studentIdDisplay")
-        .textContent =
-        "ID: " + currentUser.studentId;
-
-
-    loadStudentData();
-
-    updateAll();
-}
-
-
-/* =========================================================
+/* =====================================================
    LOGOUT
-========================================================= */
+===================================================== */
 
-document
-    .getElementById("logoutButton")
-    .addEventListener(
-        "click",
-        function() {
+function logout() {
 
-            const confirmLogout =
-                confirm(
-                    "Are you sure you want to logout?"
-                );
+    if (
+        !confirm(
+            "Are you sure you want to logout?"
+        )
+    ) {
+        return;
+    }
 
+    currentUser = null;
 
-            if (!confirmLogout) {
-                return;
-            }
+    currentData = {
+        tasks: [],
+        subjects: [],
+        schedules: []
+    };
 
-
-            sessionStorage.removeItem(
-                SESSION_KEY
-            );
-
-
-            currentUser = null;
-
-
-            location.reload();
-        }
+    localStorage.removeItem(
+        "studyPlannerLoggedIn"
     );
 
 
-/* =========================================================
-   STUDENT-SPECIFIC DATA
-========================================================= */
+    document
+        .getElementById("app")
+        .classList.add("hidden");
 
-let tasks = [];
-let subjects = [];
-let schedules = [];
-let exams = [];
-let goals = [];
-let notes = [];
+    document
+        .getElementById("authScreen")
+        .classList.remove("hidden");
 
 
-function dataKey(type) {
+    document.getElementById(
+        "loginStudentId"
+    ).value = "";
 
-    return (
-        "studyflow_" +
-        type +
-        "_" +
-        currentUser.studentId
-    );
+    document.getElementById(
+        "loginPassword"
+    ).value = "";
+
+    showLogin();
+
 }
 
 
-function loadStudentData() {
+/* =====================================================
+   SHOW APP
+===================================================== */
 
-    tasks =
-        JSON.parse(
-            localStorage.getItem(
-                dataKey("tasks")
-            )
-        ) || [];
+function showApp() {
 
+    document
+        .getElementById("authScreen")
+        .classList.add("hidden");
 
-    subjects =
-        JSON.parse(
-            localStorage.getItem(
-                dataKey("subjects")
-            )
-        ) || [];
+    document
+        .getElementById("app")
+        .classList.remove("hidden");
 
 
-    schedules =
-        JSON.parse(
-            localStorage.getItem(
-                dataKey("schedules")
-            )
-        ) || [];
+    document.getElementById(
+        "welcomeName"
+    ).textContent = currentUser.name;
 
 
-    exams =
-        JSON.parse(
-            localStorage.getItem(
-                dataKey("exams")
-            )
-        ) || [];
+    document.getElementById(
+        "sidebarName"
+    ).textContent = currentUser.name;
 
 
-    goals =
-        JSON.parse(
-            localStorage.getItem(
-                dataKey("goals")
-            )
-        ) || [];
+    document.getElementById(
+        "sidebarStudentId"
+    ).textContent = currentUser.studentId;
 
 
-    notes =
-        JSON.parse(
-            localStorage.getItem(
-                dataKey("notes")
-            )
-        ) || [];
+    document.getElementById(
+        "sidebarAvatar"
+    ).textContent =
+        currentUser.name
+            .charAt(0)
+            .toUpperCase();
+
+
+    updateDate();
+
+    refreshApplication();
+
 }
 
 
-function saveData() {
+/* =====================================================
+   LOAD USER DATA
+===================================================== */
 
-    if (!currentUser) {
+function loadUserData() {
+
+    currentData =
+        getUserData(
+            currentUser.studentId
+        );
+
+
+    if (!Array.isArray(currentData.tasks)) {
+        currentData.tasks = [];
+    }
+
+    if (!Array.isArray(currentData.subjects)) {
+        currentData.subjects = [];
+    }
+
+    if (!Array.isArray(currentData.schedules)) {
+        currentData.schedules = [];
+    }
+
+}
+
+
+/* =====================================================
+   REFRESH EVERYTHING
+===================================================== */
+
+function refreshApplication() {
+
+    updateStatistics();
+
+    renderTodayTasks();
+
+    renderUpcomingTasks();
+
+    renderTasks();
+
+    renderSubjects();
+
+    renderSubjectSelects();
+
+    renderTimetable();
+
+    renderProgress();
+
+}
+
+
+/* =====================================================
+   DATE
+===================================================== */
+
+function updateDate() {
+
+    const element =
+        document.getElementById("todayDate");
+
+    if (!element) {
         return;
     }
 
 
-    localStorage.setItem(
-        dataKey("tasks"),
-        JSON.stringify(tasks)
-    );
+    const today = new Date();
 
 
-    localStorage.setItem(
-        dataKey("subjects"),
-        JSON.stringify(subjects)
-    );
+    element.textContent =
+        today.toLocaleDateString(
+            undefined,
+            {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+            }
+        );
 
-
-    localStorage.setItem(
-        dataKey("schedules"),
-        JSON.stringify(schedules)
-    );
-
-
-    localStorage.setItem(
-        dataKey("exams"),
-        JSON.stringify(exams)
-    );
-
-
-    localStorage.setItem(
-        dataKey("goals"),
-        JSON.stringify(goals)
-    );
-
-
-    localStorage.setItem(
-        dataKey("notes"),
-        JSON.stringify(notes)
-    );
 }
 
 
-/* =========================================================
-   HELPERS
-========================================================= */
-
-function generateId() {
-
-    return (
-        Date.now() +
-        Math.floor(Math.random() * 1000)
-    );
-}
-
-
-function today() {
-
-    return new Date()
-        .toISOString()
-        .split("T")[0];
-}
-
-
-function formatDate(date) {
-
-    if (!date) {
-        return "";
-    }
-
-
-    return new Date(
-        date + "T00:00:00"
-    ).toLocaleDateString(
-        "en-IN",
-        {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
-        }
-    );
-}
-
-
-function escapeHTML(text) {
-
-    const div =
-        document.createElement("div");
-
-    div.textContent =
-        text || "";
-
-    return div.innerHTML;
-}
-
-
-/* =========================================================
+/* =====================================================
    NAVIGATION
-========================================================= */
+===================================================== */
 
-const navItems =
-    document.querySelectorAll(
-        ".nav-item"
-    );
-
-
-navItems.forEach(button => {
-
-    button.addEventListener(
-        "click",
-        () => {
-
-            showPage(
-                button.dataset.page
-            );
-
-        }
-    );
-
-});
-
-
-function showPage(pageId) {
+function showSection(sectionId, button) {
 
     document
-        .querySelectorAll(".page")
-        .forEach(page => {
+        .querySelectorAll(".content-section")
+        .forEach(function (section) {
 
-            page.classList.remove(
-                "active-page"
+            section.classList.remove(
+                "active-section"
             );
 
         });
 
 
-    const page =
-        document.getElementById(pageId);
+    const section =
+        document.getElementById(sectionId);
 
 
-    if (page) {
+    if (section) {
 
-        page.classList.add(
-            "active-page"
+        section.classList.add(
+            "active-section"
         );
 
     }
 
 
-    navItems.forEach(button => {
-
-        button.classList.toggle(
-            "active",
-            button.dataset.page === pageId
-        );
-
-    });
-
-
-    const titles = {
-
-        dashboard: "Dashboard",
-
-        tasks: "Study Tasks",
-
-        subjects: "Subjects",
-
-        timetable: "Weekly Timetable",
-
-        exams: "Exams",
-
-        goals: "Study Goals",
-
-        timer: "Focus Timer",
-
-        notes: "Study Notes",
-
-        progress: "Study Progress"
-
-    };
-
-
     document
-        .getElementById("pageTitle")
-        .textContent =
-        titles[pageId] ||
-        "Dashboard";
+        .querySelectorAll(".nav-btn")
+        .forEach(function (btn) {
+
+            btn.classList.remove("active");
+
+        });
 
 
-    updateAll();
+    if (button) {
+        button.classList.add("active");
+    }
+
+
+    closeMobileSidebar();
+
 }
 
 
-/* =========================================================
-   DASHBOARD
-========================================================= */
+function showSectionById(sectionId) {
 
-function updateDashboard() {
-
-    document
-        .getElementById("statSubjects")
-        .textContent =
-        subjects.length;
-
-
-    document
-        .getElementById("statTasks")
-        .textContent =
-        tasks.length;
-
-
-    const completed =
-        tasks.filter(
-            task => task.completed
-        ).length;
-
-
-    document
-        .getElementById("statCompleted")
-        .textContent =
-        completed;
-
-
-    const totalMinutes =
-        tasks.reduce(
-            (sum, task) =>
-                sum +
-                Number(task.duration || 0),
-            0
+    const button =
+        document.querySelector(
+            `.nav-btn[onclick*="'${sectionId}'"]`
         );
 
 
-    document
-        .getElementById("statHours")
-        .textContent =
-        (totalMinutes / 60)
-            .toFixed(1);
+    showSection(
+        sectionId,
+        button
+    );
 
-
-    const progress =
-        tasks.length === 0
-            ? 0
-            : Math.round(
-                completed /
-                tasks.length *
-                100
-            );
-
-
-    document
-        .getElementById("progressCircle")
-        .textContent =
-        progress + "%";
-
-
-    document
-        .querySelector(".progress-circle")
-        .style.background =
-        `conic-gradient(
-            var(--primary)
-            ${progress * 3.6}deg,
-            var(--border)
-            ${progress * 3.6}deg
-        )`;
-
-
-    const todayTasks =
-        tasks.filter(
-            task =>
-                task.date === today()
-        );
-
-
-    const todayContainer =
-        document.getElementById(
-            "todayTasks"
-        );
-
-
-    if (todayTasks.length === 0) {
-
-        todayContainer.innerHTML =
-            `<p class="small-text">
-                No tasks planned for today.
-            </p>`;
-
-    } else {
-
-        todayContainer.innerHTML =
-            todayTasks
-                .slice(0, 5)
-                .map(taskHTML)
-                .join("");
-
-    }
-
-
-    const examContainer =
-        document.getElementById(
-            "dashboardExams"
-        );
-
-
-    const upcoming =
-        exams
-            .filter(
-                exam =>
-                    exam.date >= today()
-            )
-            .sort(
-                (a,b) =>
-                    a.date.localeCompare(
-                        b.date
-                    )
-            )
-            .slice(0,4);
-
-
-    if (upcoming.length === 0) {
-
-        examContainer.innerHTML =
-            `<p class="small-text">
-                No upcoming exams.
-            </p>`;
-
-    } else {
-
-        examContainer.innerHTML =
-            upcoming
-                .map(exam => {
-
-                    return `
-                        <div class="task-item">
-
-                            <div class="task-info">
-
-                                <h4>
-                                    ${escapeHTML(
-                                        exam.name
-                                    )}
-                                </h4>
-
-                                <p>
-                                    ${formatDate(
-                                        exam.date
-                                    )}
-                                </p>
-
-                            </div>
-
-                        </div>
-                    `;
-
-                })
-                .join("");
-
-    }
 }
 
 
-/* =========================================================
-   TASKS
-========================================================= */
+/* =====================================================
+   SIDEBAR MOBILE
+===================================================== */
 
-function taskHTML(task) {
+function toggleSidebar() {
 
-    return `
+    document
+        .querySelector(".sidebar")
+        .classList.toggle(
+            "mobile-open"
+        );
 
-        <div class="task-item
-            ${task.completed ? "completed" : ""}">
-
-            <input
-                class="task-checkbox"
-                type="checkbox"
-                ${task.completed ? "checked" : ""}
-                onchange="toggleTask(${task.id})"
-            >
-
-
-            <div class="task-info">
-
-                <h4>
-                    ${escapeHTML(
-                        task.name
-                    )}
-                </h4>
-
-                <p>
-                    ${escapeHTML(
-                        task.subject
-                    )}
-
-                    •
-
-                    ${formatDate(
-                        task.date
-                    )}
-
-                    •
-
-                    ${task.duration}
-                    min
-                </p>
-
-            </div>
-
-
-            <span class="priority ${task.priority}">
-                ${task.priority}
-            </span>
-
-
-            <button
-                class="delete-btn"
-                onclick="deleteTask(${task.id})"
-            >
-                ×
-            </button>
-
-        </div>
-    `;
 }
 
 
-function renderTasks() {
+function closeMobileSidebar() {
 
-    const container =
-        document.getElementById(
-            "taskList"
+    document
+        .querySelector(".sidebar")
+        .classList.remove(
+            "mobile-open"
         );
 
-
-    let filtered =
-        [...tasks];
+}
 
 
-    const filter =
-        document.getElementById(
-            "taskFilter"
-        ).value;
+/* =====================================================
+   TASK MODAL
+===================================================== */
 
+function openTaskModal(taskId = null) {
 
-    const priority =
-        document.getElementById(
-            "priorityFilter"
-        ).value;
+    if (currentData.subjects.length === 0) {
 
+        alert(
+            "Please create a subject first."
+        );
 
-    if (filter === "pending") {
-
-        filtered =
-            filtered.filter(
-                task => !task.completed
-            );
-
-    }
-
-
-    if (filter === "completed") {
-
-        filtered =
-            filtered.filter(
-                task => task.completed
-            );
-
-    }
-
-
-    if (filter === "today") {
-
-        filtered =
-            filtered.filter(
-                task =>
-                    task.date === today()
-            );
-
-    }
-
-
-    if (priority !== "all") {
-
-        filtered =
-            filtered.filter(
-                task =>
-                    task.priority ===
-                    priority
-            );
-
-    }
-
-
-    if (filtered.length === 0) {
-
-        container.innerHTML =
-            `<p class="small-text">
-                No tasks found.
-            </p>`;
+        showSectionById("subjects");
 
         return;
+
     }
 
 
-    filtered.sort(
-        (a,b) =>
-            a.date.localeCompare(
-                b.date
-            )
-    );
-
-
-    container.innerHTML =
-        filtered
-            .map(taskHTML)
-            .join("");
-}
-
-
-function toggleTask(id) {
-
-    const task =
-        tasks.find(
-            task => task.id === id
-        );
-
-
-    if (!task) return;
-
-
-    task.completed =
-        !task.completed;
-
-
-    saveData();
-
-    updateAll();
-}
-
-
-function deleteTask(id) {
-
-    tasks =
-        tasks.filter(
-            task => task.id !== id
-        );
-
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* =========================================================
-   TASK FORM
-========================================================= */
-
-document
-    .getElementById("taskForm")
-    .addEventListener(
-        "submit",
-        function(event) {
-
-            event.preventDefault();
-
-
-            tasks.push({
-
-                id: generateId(),
-
-                name:
-                    document
-                        .getElementById(
-                            "taskName"
-                        )
-                        .value
-                        .trim(),
-
-                subject:
-                    document
-                        .getElementById(
-                            "taskSubject"
-                        )
-                        .value
-                        .trim(),
-
-                date:
-                    document
-                        .getElementById(
-                            "taskDate"
-                        )
-                        .value,
-
-                duration:
-                    Number(
-                        document
-                            .getElementById(
-                                "taskDuration"
-                            )
-                            .value
-                    ) || 30,
-
-                priority:
-                    document
-                        .getElementById(
-                            "taskPriority"
-                        )
-                        .value,
-
-                completed: false
-
-            });
-
-
-            saveData();
-
-            this.reset();
-
-            closeModal(
-                "taskModal"
-            );
-
-            updateAll();
-
-        }
-    );
-
-
-/* =========================================================
-   SUBJECTS
-========================================================= */
-
-function renderSubjects() {
-
-    const container =
-        document.getElementById(
-            "subjectList"
-        );
-
-
-    if (subjects.length === 0) {
-
-        container.innerHTML =
-            `<p class="small-text">
-                No subjects added yet.
-            </p>`;
-
-        return;
-    }
-
-
-    container.innerHTML =
-        subjects
-            .map(subject => {
-
-                const subjectTasks =
-                    tasks.filter(
-                        task =>
-                            task.subject
-                                .toLowerCase() ===
-                            subject.name
-                                .toLowerCase()
-                    );
-
-
-                const completed =
-                    subjectTasks.filter(
-                        task =>
-                            task.completed
-                    ).length;
-
-
-                return `
-
-                    <div class="subject-card">
-
-                        <div
-                            class="subject-color"
-                            style="
-                                background:
-                                ${subject.color}
-                            "
-                        ></div>
-
-
-                        <h3>
-                            ${escapeHTML(
-                                subject.name
-                            )}
-                        </h3>
-
-
-                        <p>
-                            👨‍🏫
-                            ${escapeHTML(
-                                subject.teacher ||
-                                "No teacher"
-                            )}
-                        </p>
-
-
-                        <p>
-                            📚
-                            ${subjectTasks.length}
-                            tasks
-                        </p>
-
-
-                        <p>
-                            ✅
-                            ${completed}
-                            completed
-                        </p>
-
-
-                        <button
-                            class="delete-btn"
-                            onclick="
-                                deleteSubject(
-                                    ${subject.id}
-                                )
-                            "
-                        >
-                            Delete
-                        </button>
-
-                    </div>
-
-                `;
-
-            })
-            .join("");
-}
-
-
-document
-    .getElementById("subjectForm")
-    .addEventListener(
-        "submit",
-        function(event) {
-
-            event.preventDefault();
-
-
-            subjects.push({
-
-                id: generateId(),
-
-                name:
-                    document
-                        .getElementById(
-                            "subjectName"
-                        )
-                        .value
-                        .trim(),
-
-                teacher:
-                    document
-                        .getElementById(
-                            "subjectTeacher"
-                        )
-                        .value
-                        .trim(),
-
-                color:
-                    document
-                        .getElementById(
-                            "subjectColor"
-                        )
-                        .value
-
-            });
-
-
-            saveData();
-
-            this.reset();
-
-            closeModal(
-                "subjectModal"
-            );
-
-            updateAll();
-
-        }
-    );
-
-
-function deleteSubject(id) {
-
-    subjects =
-        subjects.filter(
-            subject =>
-                subject.id !== id
-        );
-
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* =========================================================
-   TIMETABLE
-========================================================= */
-
-const days = [
-
-    "Monday",
-
-    "Tuesday",
-
-    "Wednesday",
-
-    "Thursday",
-
-    "Friday",
-
-    "Saturday",
-
-    "Sunday"
-
-];
-
-
-function renderTimetable() {
-
-    const container =
-        document.getElementById(
-            "timetableGrid"
-        );
-
-
-    container.innerHTML =
-        days.map(day => {
-
-            const daySchedules =
-                schedules.filter(
-                    item =>
-                        item.day === day
-                );
-
-
-            return `
-
-                <div class="day-column">
-
-                    <div class="day-header">
-                        ${day}
-                    </div>
-
-
-                    ${
-                        daySchedules.length === 0
-
-                        ?
-
-                        `<p
-                            class="small-text"
-                            style="padding:10px"
-                        >
-                            No study session
-                        </p>`
-
-                        :
-
-                        daySchedules
-                            .map(item => {
-
-                                return `
-
-                                    <div
-                                        class="schedule-item"
-                                    >
-
-                                        <strong>
-                                            ${escapeHTML(
-                                                item.subject
-                                            )}
-                                        </strong>
-
-                                        <span>
-                                            ${item.start}
-                                            -
-                                            ${item.end}
-                                        </span>
-
-                                        <button
-                                            class="delete-btn"
-                                            onclick="
-                                                deleteSchedule(
-                                                    ${item.id}
-                                                )
-                                            "
-                                        >
-                                            ×
-                                        </button>
-
-                                    </div>
-
-                                `;
-
-                            })
-                            .join("")
-
-                    }
-
-                </div>
-
-            `;
-
-        })
-        .join("");
-}
-
-
-document
-    .getElementById("scheduleForm")
-    .addEventListener(
-        "submit",
-        function(event) {
-
-            event.preventDefault();
-
-
-            schedules.push({
-
-                id: generateId(),
-
-                day:
-                    document
-                        .getElementById(
-                            "scheduleDay"
-                        )
-                        .value,
-
-                subject:
-                    document
-                        .getElementById(
-                            "scheduleSubject"
-                        )
-                        .value
-                        .trim(),
-
-                start:
-                    document
-                        .getElementById(
-                            "scheduleStart"
-                        )
-                        .value,
-
-                end:
-                    document
-                        .getElementById(
-                            "scheduleEnd"
-                        )
-                        .value
-
-            });
-
-
-            saveData();
-
-            this.reset();
-
-            closeModal(
-                "scheduleModal"
-            );
-
-            updateAll();
-
-        }
-    );
-
-
-function deleteSchedule(id) {
-
-    schedules =
-        schedules.filter(
-            item =>
-                item.id !== id
-        );
-
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* =========================================================
-   EXAMS
-========================================================= */
-
-function getDaysUntil(date) {
-
-    const exam =
-        new Date(
-            date + "T00:00:00"
-        );
-
-
-    const now =
-        new Date(
-            today() + "T00:00:00"
-        );
-
-
-    return Math.ceil(
-        (
-            exam - now
-        ) /
-        86400000
-    );
-}
-
-
-function renderExams() {
-
-    const container =
-        document.getElementById(
-            "examList"
-        );
-
-
-    if (exams.length === 0) {
-
-        container.innerHTML =
-            `<p class="small-text">
-                No exams added.
-            </p>`;
-
-        return;
-    }
-
-
-    const sorted =
-        [...exams].sort(
-            (a,b) =>
-                a.date.localeCompare(
-                    b.date
-                )
-        );
-
-
-    container.innerHTML =
-        sorted
-            .map(exam => {
-
-                const daysLeft =
-                    getDaysUntil(
-                        exam.date
-                    );
-
-
-                let countdown;
-
-
-                if (daysLeft < 0) {
-
-                    countdown =
-                        "Completed";
-
-                } else if (daysLeft === 0) {
-
-                    countdown =
-                        "Today";
-
-                } else {
-
-                    countdown =
-                        `${daysLeft}
-                        day${daysLeft === 1 ? "" : "s"}
-                        left`;
-
-                }
-
-
-                return `
-
-                    <div class="exam-card">
-
-                        <h3>
-                            ${escapeHTML(
-                                exam.name
-                            )}
-                        </h3>
-
-
-                        <div class="exam-days">
-                            ${countdown}
-                        </div>
-
-
-                        <p>
-                            📅
-                            ${formatDate(
-                                exam.date
-                            )}
-                        </p>
-
-
-                        <p>
-                            ⏰
-                            ${exam.time ||
-                            "Time not specified"}
-                        </p>
-
-
-                        <p>
-                            🏫
-                            ${escapeHTML(
-                                exam.room ||
-                                "Room not specified"
-                            )}
-                        </p>
-
-
-                        <button
-                            class="delete-btn"
-                            onclick="
-                                deleteExam(
-                                    ${exam.id}
-                                )
-                            "
-                        >
-                            Delete
-                        </button>
-
-                    </div>
-
-                `;
-
-            })
-            .join("");
-}
-
-
-document
-    .getElementById("examForm")
-    .addEventListener(
-        "submit",
-        function(event) {
-
-            event.preventDefault();
-
-
-            exams.push({
-
-                id: generateId(),
-
-                name:
-                    document
-                        .getElementById(
-                            "examName"
-                        )
-                        .value
-                        .trim(),
-
-                date:
-                    document
-                        .getElementById(
-                            "examDate"
-                        )
-                        .value,
-
-                time:
-                    document
-                        .getElementById(
-                            "examTime"
-                        )
-                        .value,
-
-                room:
-                    document
-                        .getElementById(
-                            "examRoom"
-                        )
-                        .value
-                        .trim()
-
-            });
-
-
-            saveData();
-
-            this.reset();
-
-            closeModal(
-                "examModal"
-            );
-
-            updateAll();
-
-        }
-    );
-
-
-function deleteExam(id) {
-
-    exams =
-        exams.filter(
-            exam =>
-                exam.id !== id
-        );
-
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* =========================================================
-   GOALS
-========================================================= */
-
-function renderGoals() {
-
-    const container =
-        document.getElementById(
-            "goalList"
-        );
-
-
-    if (goals.length === 0) {
-
-        container.innerHTML =
-            `<p class="small-text">
-                No goals created yet.
-            </p>`;
-
-        return;
-    }
-
-
-    container.innerHTML =
-        goals
-            .map(goal => {
-
-                const progress =
-                    Math.min(
-                        100,
-                        Math.round(
-                            goal.current /
-                            goal.target *
-                            100
-                        )
-                    );
-
-
-                return `
-
-                    <div class="goal-card">
-
-                        <h3>
-                            ${escapeHTML(
-                                goal.name
-                            )}
-                        </h3>
-
-
-                        <p>
-                            ${goal.current}
-                            /
-                            ${goal.target}
-                            ${escapeHTML(
-                                goal.unit
-                            )}
-                        </p>
-
-
-                        <div class="goal-progress">
-
-                            <div
-                                style="
-                                    width:${progress}%
-                                "
-                            ></div>
-
-                        </div>
-
-
-                        <p>
-                            ${progress}%
-                            completed
-                        </p>
-
-
-                        <button
-                            class="secondary-btn"
-                            onclick="
-                                increaseGoal(
-                                    ${goal.id}
-                                )
-                            "
-                        >
-                            + Progress
-                        </button>
-
-
-                        <button
-                            class="delete-btn"
-                            onclick="
-                                deleteGoal(
-                                    ${goal.id}
-                                )
-                            "
-                        >
-                            Delete
-                        </button>
-
-                    </div>
-
-                `;
-
-            })
-            .join("");
-}
-
-
-document
-    .getElementById("goalForm")
-    .addEventListener(
-        "submit",
-        function(event) {
-
-            event.preventDefault();
-
-
-            goals.push({
-
-                id: generateId(),
-
-                name:
-                    document
-                        .getElementById(
-                            "goalName"
-                        )
-                        .value
-                        .trim(),
-
-                target:
-                    Number(
-                        document
-                            .getElementById(
-                                "goalTarget"
-                            )
-                            .value
-                    ),
-
-                unit:
-                    document
-                        .getElementById(
-                            "goalUnit"
-                        )
-                        .value
-                        .trim(),
-
-                current: 0
-
-            });
-
-
-            saveData();
-
-            this.reset();
-
-            closeModal(
-                "goalModal"
-            );
-
-            updateAll();
-
-        }
-    );
-
-
-function increaseGoal(id) {
-
-    const goal =
-        goals.find(
-            goal =>
-                goal.id === id
-        );
-
-
-    if (!goal) return;
-
-
-    goal.current =
-        Math.min(
-            goal.target,
-            goal.current + 1
-        );
-
-
-    saveData();
-
-    updateAll();
-}
-
-
-function deleteGoal(id) {
-
-    goals =
-        goals.filter(
-            goal =>
-                goal.id !== id
-        );
-
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* =========================================================
-   NOTES
-========================================================= */
-
-function renderNotes() {
-
-    const container =
-        document.getElementById(
-            "noteList"
-        );
-
-
-    if (notes.length === 0) {
-
-        container.innerHTML =
-            `<p class="small-text">
-                No notes saved.
-            </p>`;
-
-        return;
-    }
-
-
-    container.innerHTML =
-        notes
-            .map(note => {
-
-                return `
-
-                    <div class="note-card">
-
-                        <h3>
-                            ${escapeHTML(
-                                note.title
-                            )}
-                        </h3>
-
-
-                        <p class="note-content">
-                            ${escapeHTML(
-                                note.content
-                            )}
-                        </p>
-
-
-                        <button
-                            class="delete-btn"
-                            onclick="
-                                deleteNote(
-                                    ${note.id}
-                                )
-                            "
-                        >
-                            Delete
-                        </button>
-
-                    </div>
-
-                `;
-
-            })
-            .join("");
-}
-
-
-document
-    .getElementById("noteForm")
-    .addEventListener(
-        "submit",
-        function(event) {
-
-            event.preventDefault();
-
-
-            notes.push({
-
-                id: generateId(),
-
-                title:
-                    document
-                        .getElementById(
-                            "noteTitle"
-                        )
-                        .value
-                        .trim(),
-
-                content:
-                    document
-                        .getElementById(
-                            "noteContent"
-                        )
-                        .value
-                        .trim()
-
-            });
-
-
-            saveData();
-
-            this.reset();
-
-            closeModal(
-                "noteModal"
-            );
-
-            updateAll();
-
-        }
-    );
-
-
-function deleteNote(id) {
-
-    notes =
-        notes.filter(
-            note =>
-                note.id !== id
-        );
-
-
-    saveData();
-
-    updateAll();
-}
-
-
-/* =========================================================
-   PROGRESS
-========================================================= */
-
-function renderProgress() {
-
-    const completed =
-        tasks.filter(
-            task =>
-                task.completed
-        ).length;
-
-
-    const progress =
-        tasks.length === 0
-
-            ? 0
-
-            : Math.round(
-                completed /
-                tasks.length *
-                100
-            );
-
-
     document
-        .getElementById(
-            "taskProgressText"
-        )
-        .textContent =
-        progress + "%";
-
-
-    document
-        .getElementById(
-            "taskProgressBar"
-        )
-        .style.width =
-        progress + "%";
-
-
-    const totalMinutes =
-        tasks.reduce(
-            (sum, task) =>
-                sum +
-                Number(
-                    task.duration || 0
-                ),
-            0
-        );
-
-
-    document
-        .getElementById(
-            "totalStudyTime"
-        )
-        .textContent =
-        totalMinutes;
-}
-
-
-/* =========================================================
-   POMODORO
-========================================================= */
-
-let timerSeconds =
-    25 * 60;
-
-let timerInterval =
-    null;
-
-
-function updateTimerDisplay() {
-
-    const minutes =
-        Math.floor(
-            timerSeconds / 60
-        );
-
-
-    const seconds =
-        timerSeconds % 60;
-
-
-    document
-        .getElementById(
-            "timerDisplay"
-        )
-        .textContent =
-        `${String(minutes)
-            .padStart(2,"0")}:
-         ${String(seconds)
-            .padStart(2,"0")}`;
-}
-
-
-document
-    .getElementById(
-        "startTimer"
-    )
-    .addEventListener(
-        "click",
-        function() {
-
-            if (timerInterval) {
-                return;
-            }
-
-
-            timerInterval =
-                setInterval(
-                    () => {
-
-                        if (
-                            timerSeconds <= 0
-                        ) {
-
-                            clearInterval(
-                                timerInterval
-                            );
-
-                            timerInterval =
-                                null;
-
-                            alert(
-                                "🎉 Focus session completed!"
-                            );
-
-                            return;
-                        }
-
-
-                        timerSeconds--;
-
-                        updateTimerDisplay();
-
-                    },
-                    1000
-                );
-
-        }
-    );
-
-
-document
-    .getElementById(
-        "pauseTimer"
-    )
-    .addEventListener(
-        "click",
-        function() {
-
-            clearInterval(
-                timerInterval
-            );
-
-            timerInterval =
-                null;
-
-        }
-    );
-
-
-document
-    .getElementById(
-        "resetTimer"
-    )
-    .addEventListener(
-        "click",
-        function() {
-
-            clearInterval(
-                timerInterval
-            );
-
-            timerInterval =
-                null;
-
-            timerSeconds =
-                25 * 60;
-
-            updateTimerDisplay();
-
-        }
-    );
-
-
-function setTimer(minutes) {
-
-    clearInterval(
-        timerInterval
-    );
-
-    timerInterval =
-        null;
-
-    timerSeconds =
-        minutes * 60;
-
-    updateTimerDisplay();
-}
-
-
-/* =========================================================
-   MODALS
-========================================================= */
-
-function openModal(id) {
-
-    document
-        .getElementById(id)
+        .getElementById("taskModal")
         .classList.add("show");
+
+
+    renderSubjectSelects();
+
+
+    const title =
+        document.getElementById(
+            "taskModalTitle"
+        );
+
+
+    if (taskId) {
+
+        const task =
+            currentData.tasks.find(
+                function (item) {
+                    return item.id === taskId;
+                }
+            );
+
+
+        if (!task) {
+            return;
+        }
+
+
+        title.textContent = "Edit Task";
+
+
+        document.getElementById(
+            "editTaskId"
+        ).value = task.id;
+
+
+        document.getElementById(
+            "taskTitle"
+        ).value = task.title;
+
+
+        document.getElementById(
+            "taskSubject"
+        ).value = task.subjectId;
+
+
+        document.getElementById(
+            "taskPriority"
+        ).value = task.priority;
+
+
+        document.getElementById(
+            "taskDate"
+        ).value = task.date;
+
+
+        document.getElementById(
+            "taskTime"
+        ).value = task.time || "";
+
+
+        document.getElementById(
+            "taskDescription"
+        ).value =
+            task.description || "";
+
+    } else {
+
+        title.textContent = "Add Task";
+
+
+        document.getElementById(
+            "editTaskId"
+        ).value = "";
+
+
+        document.getElementById(
+            "taskTitle"
+        ).value = "";
+
+
+        document.getElementById(
+            "taskPriority"
+        ).value = "medium";
+
+
+        document.getElementById(
+            "taskDate"
+        ).value =
+            getTodayString();
+
+
+        document.getElementById(
+            "taskTime"
+        ).value = "";
+
+
+        document.getElementById(
+            "taskDescription"
+        ).value = "";
+
+    }
+
 }
 
 
@@ -2313,262 +818,1746 @@ function closeModal(id) {
     document
         .getElementById(id)
         .classList.remove("show");
+
 }
 
 
-document
-    .querySelectorAll(".modal")
-    .forEach(modal => {
+/* =====================================================
+   SAVE TASK
+===================================================== */
 
-        modal.addEventListener(
-            "click",
-            function(event) {
+function saveTask() {
 
-                if (
-                    event.target === modal
-                ) {
+    const title =
+        document
+            .getElementById("taskTitle")
+            .value
+            .trim();
 
-                    modal.classList.remove(
-                        "show"
+    const subjectId =
+        document.getElementById(
+            "taskSubject"
+        ).value;
+
+    const priority =
+        document.getElementById(
+            "taskPriority"
+        ).value;
+
+    const date =
+        document.getElementById(
+            "taskDate"
+        ).value;
+
+    const time =
+        document.getElementById(
+            "taskTime"
+        ).value;
+
+    const description =
+        document.getElementById(
+            "taskDescription"
+        ).value
+        .trim();
+
+    const editId =
+        document.getElementById(
+            "editTaskId"
+        ).value;
+
+    const message =
+        document.getElementById(
+            "taskMessage"
+        );
+
+
+    if (!title || !subjectId || !date) {
+
+        showMessage(
+            message,
+            "Please enter title, subject and date.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    if (editId) {
+
+        const task =
+            currentData.tasks.find(
+                function (item) {
+                    return item.id === editId;
+                }
+            );
+
+
+        if (task) {
+
+            task.title = title;
+
+            task.subjectId = subjectId;
+
+            task.priority = priority;
+
+            task.date = date;
+
+            task.time = time;
+
+            task.description = description;
+
+        }
+
+    } else {
+
+        currentData.tasks.push({
+
+            id: generateId(),
+
+            title: title,
+
+            subjectId: subjectId,
+
+            priority: priority,
+
+            date: date,
+
+            time: time,
+
+            description: description,
+
+            completed: false,
+
+            createdAt:
+                new Date().toISOString()
+
+        });
+
+    }
+
+
+    saveUserData();
+
+    closeModal("taskModal");
+
+    refreshApplication();
+
+}
+
+
+/* =====================================================
+   DELETE TASK
+===================================================== */
+
+function deleteTask(id) {
+
+    const task =
+        currentData.tasks.find(
+            function (item) {
+                return item.id === id;
+            }
+        );
+
+
+    if (!task) {
+        return;
+    }
+
+
+    if (
+        !confirm(
+            `Delete "${task.title}"?`
+        )
+    ) {
+        return;
+    }
+
+
+    currentData.tasks =
+        currentData.tasks.filter(
+            function (item) {
+                return item.id !== id;
+            }
+        );
+
+
+    saveUserData();
+
+    refreshApplication();
+
+}
+
+
+/* =====================================================
+   COMPLETE TASK
+===================================================== */
+
+function toggleTask(id) {
+
+    const task =
+        currentData.tasks.find(
+            function (item) {
+                return item.id === id;
+            }
+        );
+
+
+    if (!task) {
+        return;
+    }
+
+
+    task.completed =
+        !task.completed;
+
+
+    saveUserData();
+
+    refreshApplication();
+
+}
+
+
+/* =====================================================
+   RENDER TASKS
+===================================================== */
+
+function renderTasks() {
+
+    const container =
+        document.getElementById(
+            "allTasks"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    const search =
+        (
+            document.getElementById(
+                "taskSearch"
+            )?.value || ""
+        )
+        .toLowerCase();
+
+
+    const filter =
+        document.getElementById(
+            "taskFilter"
+        )?.value || "all";
+
+
+    let tasks =
+        [...currentData.tasks];
+
+
+    if (search) {
+
+        tasks =
+            tasks.filter(
+                function (task) {
+
+                    return (
+                        task.title
+                            .toLowerCase()
+                            .includes(search) ||
+
+                        getSubjectName(
+                            task.subjectId
+                        )
+                            .toLowerCase()
+                            .includes(search)
                     );
 
                 }
+            );
 
-            }
+    }
+
+
+    if (filter === "completed") {
+
+        tasks =
+            tasks.filter(
+                task => task.completed
+            );
+
+    }
+
+
+    if (filter === "pending") {
+
+        tasks =
+            tasks.filter(
+                task => !task.completed
+            );
+
+    }
+
+
+    tasks.sort(
+        function (a, b) {
+
+            return (
+                (a.date + a.time)
+                .localeCompare(
+                    b.date + b.time
+                )
+            );
+
+        }
+    );
+
+
+    if (tasks.length === 0) {
+
+        container.innerHTML =
+            `
+            <div class="panel empty-state">
+                No tasks found.
+            </div>
+            `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        tasks
+            .map(
+                taskHTML
+            )
+            .join("");
+
+}
+
+
+/* =====================================================
+   TASK HTML
+===================================================== */
+
+function taskHTML(task) {
+
+    const subject =
+        getSubject(
+            task.subjectId
         );
+
+
+    const subjectName =
+        subject
+            ? subject.name
+            : "Unknown Subject";
+
+
+    const priorityClass =
+        "priority-" +
+        task.priority;
+
+
+    return `
+        <div class="task-item">
+
+            <input
+                type="checkbox"
+                class="task-check"
+                ${task.completed ? "checked" : ""}
+                onchange="toggleTask('${task.id}')"
+            >
+
+            <div class="task-info">
+
+                <div class="task-title
+                    ${task.completed ? "completed" : ""}">
+
+                    ${escapeHTML(task.title)}
+
+                </div>
+
+                <div class="task-meta">
+
+                    📚 ${escapeHTML(subjectName)}
+                    &nbsp; • &nbsp;
+                    📅 ${formatDate(task.date)}
+
+                    ${task.time
+                        ? ` • ⏰ ${task.time}`
+                        : ""
+                    }
+
+                </div>
+
+                ${
+                    task.description
+                        ? `
+                        <div class="task-meta">
+                            ${escapeHTML(task.description)}
+                        </div>
+                        `
+                        : ""
+                }
+
+            </div>
+
+            <span class="priority ${priorityClass}">
+                ${capitalize(task.priority)}
+            </span>
+
+            <div class="task-actions">
+
+                <button
+                    class="icon-btn"
+                    onclick="openTaskModal('${task.id}')"
+                    title="Edit"
+                >
+                    ✏️
+                </button>
+
+                <button
+                    class="icon-btn delete-btn"
+                    onclick="deleteTask('${task.id}')"
+                    title="Delete"
+                >
+                    🗑️
+                </button>
+
+            </div>
+
+        </div>
+    `;
+
+}
+
+
+/* =====================================================
+   TODAY TASKS
+===================================================== */
+
+function renderTodayTasks() {
+
+    const container =
+        document.getElementById(
+            "todayTasks"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    const today =
+        getTodayString();
+
+
+    const tasks =
+        currentData.tasks
+            .filter(
+                task =>
+                    task.date === today
+            )
+            .sort(
+                (a, b) =>
+                    (a.time || "")
+                        .localeCompare(
+                            b.time || ""
+                        )
+            );
+
+
+    if (tasks.length === 0) {
+
+        container.innerHTML =
+            `
+            <div class="empty-state">
+                No tasks scheduled for today.
+            </div>
+            `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        tasks
+            .slice(0, 6)
+            .map(taskHTML)
+            .join("");
+
+}
+
+
+/* =====================================================
+   UPCOMING TASKS
+===================================================== */
+
+function renderUpcomingTasks() {
+
+    const container =
+        document.getElementById(
+            "upcomingTasks"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    const today =
+        getTodayString();
+
+
+    const tasks =
+        currentData.tasks
+            .filter(
+                task =>
+                    task.date > today &&
+                    !task.completed
+            )
+            .sort(
+                (a, b) =>
+                    a.date.localeCompare(
+                        b.date
+                    )
+            );
+
+
+    if (tasks.length === 0) {
+
+        container.innerHTML =
+            `
+            <div class="empty-state">
+                No upcoming tasks.
+            </div>
+            `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        tasks
+            .slice(0, 5)
+            .map(taskHTML)
+            .join("");
+
+}
+
+
+/* =====================================================
+   STATISTICS
+===================================================== */
+
+function updateStatistics() {
+
+    const total =
+        currentData.tasks.length;
+
+
+    const completed =
+        currentData.tasks
+            .filter(
+                task => task.completed
+            )
+            .length;
+
+
+    const pending =
+        total - completed;
+
+
+    const progress =
+        total === 0
+            ? 0
+            : Math.round(
+                completed / total * 100
+            );
+
+
+    setText(
+        "totalTasks",
+        total
+    );
+
+    setText(
+        "completedTasks",
+        completed
+    );
+
+    setText(
+        "pendingTasks",
+        pending
+    );
+
+    setText(
+        "overallProgress",
+        progress + "%"
+    );
+
+
+    updateCircle(
+        "dashboardCircle",
+        "dashboardProgressText",
+        progress
+    );
+
+}
+
+
+/* =====================================================
+   SUBJECTS
+===================================================== */
+
+function openSubjectModal() {
+
+    document
+        .getElementById("subjectModal")
+        .classList.add("show");
+
+
+    document.getElementById(
+        "subjectName"
+    ).value = "";
+
+
+    document.getElementById(
+        "subjectColor"
+    ).value = "#4f46e5";
+
+}
+
+
+function saveSubject() {
+
+    const name =
+        document
+            .getElementById(
+                "subjectName"
+            )
+            .value
+            .trim();
+
+    const color =
+        document.getElementById(
+            "subjectColor"
+        ).value;
+
+    const message =
+        document.getElementById(
+            "subjectMessage"
+        );
+
+
+    if (!name) {
+
+        showMessage(
+            message,
+            "Please enter a subject name.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const duplicate =
+        currentData.subjects.some(
+            subject =>
+                subject.name.toLowerCase()
+                === name.toLowerCase()
+        );
+
+
+    if (duplicate) {
+
+        showMessage(
+            message,
+            "This subject already exists.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    currentData.subjects.push({
+
+        id: generateId(),
+
+        name: name,
+
+        color: color
 
     });
 
 
-/* =========================================================
-   DARK MODE
-========================================================= */
+    saveUserData();
 
-const savedTheme =
-    localStorage.getItem(
-        "studyflow_theme"
-    );
+    closeModal("subjectModal");
 
+    refreshApplication();
 
-if (savedTheme === "dark") {
-
-    document.body.classList.add(
-        "dark"
-    );
-
-    document
-        .getElementById(
-            "themeToggle"
-        )
-        .textContent =
-        "☀️ Light Mode";
 }
 
 
-document
-    .getElementById(
-        "themeToggle"
-    )
-    .addEventListener(
-        "click",
-        function() {
+function renderSubjects() {
 
-            document.body.classList.toggle(
-                "dark"
+    const container =
+        document.getElementById(
+            "subjectGrid"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    if (currentData.subjects.length === 0) {
+
+        container.innerHTML =
+            `
+            <div class="panel empty-state">
+                No subjects yet. Add your first subject.
+            </div>
+            `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        currentData.subjects
+            .map(
+                function (subject) {
+
+                    const total =
+                        currentData.tasks
+                            .filter(
+                                task =>
+                                    task.subjectId
+                                    === subject.id
+                            )
+                            .length;
+
+
+                    const completed =
+                        currentData.tasks
+                            .filter(
+                                task =>
+                                    task.subjectId
+                                    === subject.id &&
+                                    task.completed
+                            )
+                            .length;
+
+
+                    const progress =
+                        total === 0
+                            ? 0
+                            : Math.round(
+                                completed /
+                                total *
+                                100
+                            );
+
+
+                    return `
+                        <div
+                            class="subject-card"
+                            style="
+                                border-left-color:
+                                ${subject.color};
+                            "
+                        >
+
+                            <h3>
+                                ${escapeHTML(
+                                    subject.name
+                                )}
+                            </h3>
+
+                            <p>
+                                ${total} task(s)
+                                • ${progress}% completed
+                            </p>
+
+                            <div
+                                class="progress-bar"
+                                style="margin-top:15px;"
+                            >
+
+                                <div
+                                    class="progress-fill"
+                                    style="
+                                        width:${progress}%;
+                                        background:${subject.color};
+                                    "
+                                ></div>
+
+                            </div>
+
+                            <div class="subject-actions">
+
+                                <button
+                                    class="icon-btn delete-btn"
+                                    onclick="
+                                        deleteSubject(
+                                            '${subject.id}'
+                                        )
+                                    "
+                                >
+                                    🗑️
+                                </button>
+
+                            </div>
+
+                        </div>
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+/* =====================================================
+   DELETE SUBJECT
+===================================================== */
+
+function deleteSubject(id) {
+
+    const subject =
+        getSubject(id);
+
+
+    if (!subject) {
+        return;
+    }
+
+
+    const taskCount =
+        currentData.tasks
+            .filter(
+                task =>
+                    task.subjectId === id
+            )
+            .length;
+
+
+    if (taskCount > 0) {
+
+        alert(
+            "You cannot delete this subject while it has tasks. Delete or edit those tasks first."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            `Delete subject "${subject.name}"?`
+        )
+    ) {
+        return;
+    }
+
+
+    currentData.subjects =
+        currentData.subjects.filter(
+            subject =>
+                subject.id !== id
+        );
+
+
+    saveUserData();
+
+    refreshApplication();
+
+}
+
+
+/* =====================================================
+   SUBJECT SELECTS
+===================================================== */
+
+function renderSubjectSelects() {
+
+    const taskSelect =
+        document.getElementById(
+            "taskSubject"
+        );
+
+    const scheduleSelect =
+        document.getElementById(
+            "scheduleSubject"
+        );
+
+
+    const options =
+        currentData.subjects
+            .map(
+                subject =>
+                    `
+                    <option value="${subject.id}">
+                        ${escapeHTML(subject.name)}
+                    </option>
+                    `
+            )
+            .join("");
+
+
+    if (taskSelect) {
+        taskSelect.innerHTML = options;
+    }
+
+    if (scheduleSelect) {
+        scheduleSelect.innerHTML = options;
+    }
+
+}
+
+
+/* =====================================================
+   TIMETABLE
+===================================================== */
+
+const timetableHours = [
+    "06:00",
+    "07:00",
+    "08:00",
+    "09:00",
+    "10:00",
+    "11:00",
+    "12:00",
+    "13:00",
+    "14:00",
+    "15:00",
+    "16:00",
+    "17:00",
+    "18:00",
+    "19:00",
+    "20:00",
+    "21:00"
+];
+
+
+const timetableDays = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday"
+];
+
+
+function renderTimetable() {
+
+    const tbody =
+        document.getElementById(
+            "timetableBody"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    tbody.innerHTML =
+        timetableHours
+            .map(
+                function (hour) {
+
+                    let row =
+                        `<tr>
+                            <th>${formatTime(hour)}</th>`;
+
+
+                    timetableDays.forEach(
+                        function (day) {
+
+                            const schedules =
+                                currentData.schedules
+                                    .filter(
+                                        schedule =>
+                                            schedule.day === day &&
+                                            schedule.start <= hour &&
+                                            schedule.end > hour
+                                    );
+
+
+                            if (schedules.length) {
+
+                                row +=
+                                    `
+                                    <td>
+                                    ${
+                                        schedules
+                                            .map(
+                                                function (schedule) {
+
+                                                    const subject =
+                                                        getSubject(
+                                                            schedule.subjectId
+                                                        );
+
+                                                    return `
+                                                        <div
+                                                            class="schedule-cell"
+                                                            style="
+                                                                background:
+                                                                ${subject
+                                                                    ? subject.color + "22"
+                                                                    : "#eef2ff"
+                                                                };
+                                                                color:
+                                                                ${subject
+                                                                    ? subject.color
+                                                                    : "#3730a3"
+                                                                };
+                                                            "
+                                                        >
+
+                                                            ${escapeHTML(
+                                                                subject
+                                                                    ? subject.name
+                                                                    : "Study"
+                                                            )}
+
+                                                            <button
+                                                                onclick="
+                                                                    deleteSchedule(
+                                                                        '${schedule.id}'
+                                                                    )
+                                                                "
+                                                            >
+                                                                ×
+                                                            </button>
+
+                                                        </div>
+                                                    `;
+
+                                                }
+                                            )
+                                            .join("")
+                                    }
+                                    </td>
+                                    `;
+
+                            } else {
+
+                                row += "<td></td>";
+
+                            }
+
+                        }
+                    );
+
+
+                    row += "</tr>";
+
+                    return row;
+
+                }
+            )
+            .join("");
+
+}
+
+
+/* =====================================================
+   SCHEDULE MODAL
+===================================================== */
+
+function openScheduleModal() {
+
+    if (currentData.subjects.length === 0) {
+
+        alert(
+            "Please create a subject first."
+        );
+
+        showSectionById("subjects");
+
+        return;
+
+    }
+
+
+    document
+        .getElementById(
+            "scheduleModal"
+        )
+        .classList.add("show");
+
+
+    renderSubjectSelects();
+
+}
+
+
+function saveSchedule() {
+
+    const day =
+        document.getElementById(
+            "scheduleDay"
+        ).value;
+
+    const start =
+        document.getElementById(
+            "scheduleStart"
+        ).value;
+
+    const end =
+        document.getElementById(
+            "scheduleEnd"
+        ).value;
+
+    const subjectId =
+        document.getElementById(
+            "scheduleSubject"
+        ).value;
+
+    const message =
+        document.getElementById(
+            "scheduleMessage"
+        );
+
+
+    if (!day || !start || !end || !subjectId) {
+
+        showMessage(
+            message,
+            "Please fill in all fields.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    if (start >= end) {
+
+        showMessage(
+            message,
+            "End time must be after start time.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    currentData.schedules.push({
+
+        id: generateId(),
+
+        day: day,
+
+        start: start,
+
+        end: end,
+
+        subjectId: subjectId
+
+    });
+
+
+    saveUserData();
+
+    closeModal("scheduleModal");
+
+    refreshApplication();
+
+}
+
+
+function deleteSchedule(id) {
+
+    if (
+        !confirm(
+            "Delete this schedule?"
+        )
+    ) {
+        return;
+    }
+
+
+    currentData.schedules =
+        currentData.schedules.filter(
+            schedule =>
+                schedule.id !== id
+        );
+
+
+    saveUserData();
+
+    refreshApplication();
+
+}
+
+
+/* =====================================================
+   PROGRESS
+===================================================== */
+
+function renderProgress() {
+
+    const total =
+        currentData.tasks.length;
+
+
+    const completed =
+        currentData.tasks
+            .filter(
+                task =>
+                    task.completed
+            )
+            .length;
+
+
+    const pending =
+        total - completed;
+
+
+    const progress =
+        total === 0
+            ? 0
+            : Math.round(
+                completed /
+                total *
+                100
             );
 
 
-            const dark =
-                document.body.classList.contains(
-                    "dark"
-                );
+    updateCircle(
+        "bigProgressCircle",
+        "bigProgressText",
+        progress
+    );
 
 
-            localStorage.setItem(
-                "studyflow_theme",
-                dark
-                    ? "dark"
-                    : "light"
+    const completedPercent =
+        total === 0
+            ? 0
+            : Math.round(
+                completed /
+                total *
+                100
             );
 
 
-            this.textContent =
-                dark
-                    ? "☀️ Light Mode"
-                    : "🌙 Dark Mode";
+    const pendingPercent =
+        total === 0
+            ? 0
+            : Math.round(
+                pending /
+                total *
+                100
+            );
 
-        }
+
+    setText(
+        "completedPercent",
+        completedPercent + "%"
+    );
+
+    setText(
+        "pendingPercent",
+        pendingPercent + "%"
     );
 
 
-/* =========================================================
-   MOBILE MENU
-========================================================= */
+    const completedBar =
+        document.getElementById(
+            "completedBar"
+        );
 
-document
-    .getElementById(
-        "mobileMenu"
-    )
-    .addEventListener(
-        "click",
-        function() {
+    const pendingBar =
+        document.getElementById(
+            "pendingBar"
+        );
 
-            document
-                .querySelector(
-                    ".sidebar"
-                )
-                .classList.toggle(
-                    "open"
-                );
 
-        }
+    if (completedBar) {
+
+        completedBar.style.width =
+            completedPercent + "%";
+
+    }
+
+
+    if (pendingBar) {
+
+        pendingBar.style.width =
+            pendingPercent + "%";
+
+    }
+
+
+    renderSubjectProgress();
+
+}
+
+
+/* =====================================================
+   SUBJECT PROGRESS
+===================================================== */
+
+function renderSubjectProgress() {
+
+    const container =
+        document.getElementById(
+            "subjectProgress"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    if (currentData.subjects.length === 0) {
+
+        container.innerHTML =
+            `
+            <div class="empty-state">
+                Add subjects to see performance.
+            </div>
+            `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        currentData.subjects
+            .map(
+                function (subject) {
+
+                    const tasks =
+                        currentData.tasks
+                            .filter(
+                                task =>
+                                    task.subjectId
+                                    === subject.id
+                            );
+
+
+                    const completed =
+                        tasks.filter(
+                            task =>
+                                task.completed
+                        ).length;
+
+
+                    const progress =
+                        tasks.length === 0
+                            ? 0
+                            : Math.round(
+                                completed /
+                                tasks.length *
+                                100
+                            );
+
+
+                    return `
+                        <div class="subject-progress-row">
+
+                            <div class="subject-progress-header">
+
+                                <span>
+                                    ${escapeHTML(
+                                        subject.name
+                                    )}
+                                </span>
+
+                                <strong>
+                                    ${progress}%
+                                </strong>
+
+                            </div>
+
+                            <div class="progress-bar">
+
+                                <div
+                                    class="progress-fill"
+                                    style="
+                                        width:${progress}%;
+                                        background:${subject.color};
+                                    "
+                                ></div>
+
+                            </div>
+
+                        </div>
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+/* =====================================================
+   DARK MODE
+===================================================== */
+
+function toggleTheme() {
+
+    document.body.classList.toggle(
+        "dark"
     );
 
 
-/* =========================================================
-   SEARCH
-========================================================= */
-
-document
-    .getElementById(
-        "globalSearch"
-    )
-    .addEventListener(
-        "input",
-        function() {
-
-            const search =
-                this.value
-                    .toLowerCase()
-                    .trim();
+    const dark =
+        document.body.classList.contains(
+            "dark"
+        );
 
 
-            if (!search) {
-
-                renderTasks();
-
-                return;
-            }
-
-
-            const results =
-                tasks.filter(
-                    task =>
-
-                        task.name
-                            .toLowerCase()
-                            .includes(search)
-
-                        ||
-
-                        task.subject
-                            .toLowerCase()
-                            .includes(search)
-                );
-
-
-            showPage("tasks");
-
-
-            const container =
-                document.getElementById(
-                    "taskList"
-                );
-
-
-            if (results.length === 0) {
-
-                container.innerHTML =
-                    `<p class="small-text">
-                        No results found.
-                    </p>`;
-
-            } else {
-
-                container.innerHTML =
-                    results
-                        .map(taskHTML)
-                        .join("");
-
-            }
-
-        }
+    localStorage.setItem(
+        "studyPlannerDarkMode",
+        dark
     );
 
+}
 
-/* =========================================================
-   FILTERS
-========================================================= */
 
-document
-    .getElementById(
-        "taskFilter"
-    )
-    .addEventListener(
-        "change",
-        renderTasks
+(function loadTheme() {
+
+    const dark =
+        localStorage.getItem(
+            "studyPlannerDarkMode"
+        );
+
+
+    if (dark === "true") {
+
+        document.body.classList.add(
+            "dark"
+        );
+
+    }
+
+})();
+
+
+/* =====================================================
+   UTILITY FUNCTIONS
+===================================================== */
+
+function generateId() {
+
+    return (
+        Date.now().toString(36) +
+        Math.random()
+            .toString(36)
+            .substring(2, 9)
     );
 
-
-document
-    .getElementById(
-        "priorityFilter"
-    )
-    .addEventListener(
-        "change",
-        renderTasks
-    );
+}
 
 
-/* =========================================================
-   DATE
-========================================================= */
+function getTodayString() {
 
-document
-    .getElementById(
-        "currentDate"
-    )
-    .textContent =
-    new Date().toLocaleDateString(
-        "en-IN",
+    const date = new Date();
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+
+    return `${year}-${month}-${day}`;
+
+}
+
+
+function formatDate(dateString) {
+
+    if (!dateString) {
+        return "";
+    }
+
+
+    const date =
+        new Date(
+            dateString + "T00:00:00"
+        );
+
+
+    return date.toLocaleDateString(
+        undefined,
         {
-            weekday: "long",
             day: "numeric",
-            month: "long",
+            month: "short",
             year: "numeric"
         }
     );
 
-
-/* =========================================================
-   UPDATE EVERYTHING
-========================================================= */
-
-function updateAll() {
-
-    updateDashboard();
-
-    renderTasks();
-
-    renderSubjects();
-
-    renderTimetable();
-
-    renderExams();
-
-    renderGoals();
-
-    renderNotes();
-
-    renderProgress();
-
-    updateTimerDisplay();
 }
 
 
-/* =========================================================
-   START APPLICATION
-========================================================= */
+function formatTime(time) {
 
-checkSession();
-```
+    if (!time) {
+        return "";
+    }
+
+
+    const [hours, minutes] =
+        time.split(":");
+
+
+    const date =
+        new Date();
+
+
+    date.setHours(
+        Number(hours),
+        Number(minutes)
+    );
+
+
+    return date.toLocaleTimeString(
+        undefined,
+        {
+            hour: "numeric",
+            minute: "2-digit"
+        }
+    );
+
+}
+
+
+function capitalize(text) {
+
+    if (!text) {
+        return "";
+    }
+
+
+    return (
+        text.charAt(0).toUpperCase() +
+        text.slice(1)
+    );
+
+}
+
+
+function getSubject(id) {
+
+    return currentData.subjects.find(
+        subject =>
+            subject.id === id
+    );
+
+}
+
+
+function getSubjectName(id) {
+
+    const subject =
+        getSubject(id);
+
+
+    return subject
+        ? subject.name
+        : "";
+
+}
+
+
+function setText(id, value) {
+
+    const element =
+        document.getElementById(id);
+
+
+    if (element) {
+        element.textContent = value;
+    }
+
+}
+
+
+function showMessage(
+    element,
+    message,
+    type
+) {
+
+    if (!element) {
+        return;
+    }
+
+
+    element.textContent = message;
+
+    element.className =
+        "message " + type;
+
+}
+
+
+function updateCircle(
+    circleId,
+    textId,
+    percentage
+) {
+
+    const circle =
+        document.getElementById(
+            circleId
+        );
+
+
+    const text =
+        document.getElementById(
+            textId
+        );
+
+
+    if (circle) {
+
+        const degrees =
+            percentage * 3.6;
+
+
+        circle.style.background =
+            `
+            conic-gradient(
+                var(--primary)
+                ${degrees}deg,
+                #e5e7eb
+                ${degrees}deg
+            )
+            `;
+
+    }
+
+
+    if (text) {
+
+        text.textContent =
+            percentage + "%";
+
+    }
+
+}
+
+
+function escapeHTML(value) {
+
+    return String(value)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* =====================================================
+   CLOSE MODAL WHEN CLICKING OUTSIDE
+===================================================== */
+
+window.addEventListener(
+    "click",
+    function (event) {
+
+        document
+            .querySelectorAll(".modal")
+            .forEach(
+                function (modal) {
+
+                    if (
+                        event.target === modal
+                    ) {
+
+                        modal.classList.remove(
+                            "show"
+                        );
+
+                    }
+
+                }
+            );
+
+    }
+);
+
+
+/* =====================================================
+   KEYBOARD ESCAPE
+===================================================== */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (event.key === "Escape") {
+
+            document
+                .querySelectorAll(".modal")
+                .forEach(
+                    function (modal) {
+
+                        modal.classList.remove(
+                            "show"
+                        );
+
+                    }
+                );
+
+        }
+
+    }
+);
