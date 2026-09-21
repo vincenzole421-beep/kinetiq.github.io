@@ -1,12 +1,16 @@
-/* =====================================================
+/* =========================================================
    STUDY MATE
-   Complete Frontend Application
-===================================================== */
+   Corrected Complete JavaScript
+========================================================= */
 
 
-/* ================= GLOBAL DATA ================= */
+/* =========================================================
+   GLOBAL VARIABLES
+========================================================= */
 
-let users = JSON.parse(localStorage.getItem("studyMateUsers")) || [];
+let users = JSON.parse(
+    localStorage.getItem("studyMateUsers") || "[]"
+);
 
 let currentUserEmail =
     localStorage.getItem("studyMateCurrentUser") || null;
@@ -20,258 +24,117 @@ let timerInterval = null;
 let timerSeconds = 25 * 60;
 
 
-/* ================= DEFAULT USER DATA ================= */
+/* =========================================================
+   INITIALIZATION
+========================================================= */
 
-function createUserData() {
+document.addEventListener("DOMContentLoaded", function () {
 
-    return {
+    const currentDateElement =
+        document.getElementById("currentDate");
 
-        subjects: [],
+    if (currentDateElement) {
+        currentDateElement.textContent =
+            new Date().toLocaleDateString("en-IN", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+            });
+    }
 
-        tasks: [],
-
-        notes: [],
-
-        exams: [],
-
-        planner: [],
-
-        studyMinutes: 0,
-
-        streak: 0,
-
-        lastStudyDate: null
-
-    };
-
-}
-
-
-/* ================= INIT ================= */
-
-document.addEventListener("DOMContentLoaded", () => {
-
-    document.getElementById("currentDate").textContent =
-        new Date().toLocaleDateString("en-IN", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric"
-        });
+    /*
+       Check if a user was previously logged in.
+    */
 
     if (currentUserEmail) {
 
         currentUser =
-            users.find(user => user.email === currentUserEmail);
+            users.find(function (user) {
+                return user.email === currentUserEmail;
+            });
 
         if (currentUser) {
-
             openApplication();
-
         }
-
     }
 
     updateTimerDisplay();
 
+    restoreDarkMode();
 });
 
 
-/* ================= AUTH ================= */
+/* =========================================================
+   USER DATA
+========================================================= */
 
-function showRegister() {
+function createUserData() {
 
-    document.getElementById("loginBox")
-        .classList.add("hidden");
-
-    document.getElementById("registerBox")
-        .classList.remove("hidden");
-
-}
-
-
-function showLogin() {
-
-    document.getElementById("registerBox")
-        .classList.add("hidden");
-
-    document.getElementById("loginBox")
-        .classList.remove("hidden");
-
-}
-
-
-/* ================= REGISTER ================= */
-
-document.getElementById("registerForm")
-.addEventListener("submit", function(e) {
-
-    e.preventDefault();
-
-    const name =
-        document.getElementById("registerName").value.trim();
-
-    const studentId =
-        document.getElementById("registerStudentId").value.trim();
-
-    const email =
-        document.getElementById("registerEmail").value.trim();
-
-    const password =
-        document.getElementById("registerPassword").value;
-
-    const course =
-        document.getElementById("registerCourse").value.trim();
-
-    const department =
-        document.getElementById("registerDepartment").value.trim();
-
-    const academicYear =
-        document.getElementById("registerYear").value;
-
-    const semester =
-        document.getElementById("registerSemester").value;
-
-
-    if (users.some(user => user.email === email)) {
-
-        showToast("Email already registered.");
-
-        return;
-
-    }
-
-
-    if (users.some(user => user.studentId === studentId)) {
-
-        showToast("Student ID already exists.");
-
-        return;
-
-    }
-
-
-    const newUser = {
-
-        id: Date.now(),
-
-        name,
-
-        studentId,
-
-        email,
-
-        password,
-
-        course,
-
-        department,
-
-        academicYear,
-
-        semester,
-
-        ...createUserData()
-
+    return {
+        subjects: [],
+        tasks: [],
+        notes: [],
+        exams: [],
+        planner: [],
+        studyMinutes: 0,
+        streak: 0,
+        lastStudyDate: null
     };
-
-
-    users.push(newUser);
-
-    saveUsers();
-
-
-    currentUser = newUser;
-
-    currentUserEmail = email;
-
-    localStorage.setItem(
-        "studyMateCurrentUser",
-        email
-    );
-
-
-    showToast("Account created successfully!");
-
-    openApplication();
-
-});
-
-
-/* ================= LOGIN ================= */
-
-document.getElementById("loginForm")
-.addEventListener("submit", function(e) {
-
-    e.preventDefault();
-
-    const email =
-        document.getElementById("loginEmail").value.trim();
-
-    const password =
-        document.getElementById("loginPassword").value;
-
-
-    const user = users.find(
-        u =>
-            u.email === email &&
-            u.password === password
-    );
-
-
-    if (!user) {
-
-        showToast("Invalid email or password.");
-
-        return;
-
-    }
-
-
-    currentUser = user;
-
-    currentUserEmail = email;
-
-
-    localStorage.setItem(
-        "studyMateCurrentUser",
-        email
-    );
-
-
-    openApplication();
-
-});
-
-
-/* ================= OPEN APP ================= */
-
-function openApplication() {
-
-    document.getElementById("authScreen")
-        .classList.add("hidden");
-
-    document.getElementById("app")
-        .classList.remove("hidden");
-
-
-    renderEverything();
-
 }
 
 
-/* ================= LOGOUT ================= */
+/*
+   Makes sure older users created with a previous
+   version of the application have all required fields.
+*/
 
-function logout() {
+function normalizeUser(user) {
 
-    localStorage.removeItem("studyMateCurrentUser");
+    const defaults = createUserData();
 
-    location.reload();
+    Object.keys(defaults).forEach(function (key) {
 
+        if (!Array.isArray(defaults[key]) &&
+            typeof defaults[key] === "object" &&
+            defaults[key] !== null) {
+
+            if (
+                !user[key] ||
+                typeof user[key] !== "object"
+            ) {
+                user[key] = defaults[key];
+            }
+
+        } else if (!(key in user)) {
+
+            user[key] = defaults[key];
+
+        }
+
+    });
+
+
+    /*
+       Make sure subjects contain topic arrays.
+    */
+
+    user.subjects.forEach(function (subject) {
+
+        if (!Array.isArray(subject.topics)) {
+            subject.topics = [];
+        }
+
+    });
+
+
+    return user;
 }
 
 
-/* ================= SAVE DATABASE ================= */
+/* =========================================================
+   DATABASE
+========================================================= */
 
 function saveUsers() {
 
@@ -279,138 +142,588 @@ function saveUsers() {
         "studyMateUsers",
         JSON.stringify(users)
     );
+}
+
+
+/* =========================================================
+   AUTHENTICATION
+========================================================= */
+
+function showRegister() {
+
+    const loginBox =
+        document.getElementById("loginBox");
+
+    const registerBox =
+        document.getElementById("registerBox");
+
+    if (loginBox) {
+        loginBox.classList.add("hidden");
+    }
+
+    if (registerBox) {
+        registerBox.classList.remove("hidden");
+    }
+}
+
+
+function showLogin() {
+
+    const loginBox =
+        document.getElementById("loginBox");
+
+    const registerBox =
+        document.getElementById("registerBox");
+
+    if (registerBox) {
+        registerBox.classList.add("hidden");
+    }
+
+    if (loginBox) {
+        loginBox.classList.remove("hidden");
+    }
+}
+
+
+/* =========================================================
+   REGISTER
+========================================================= */
+
+const registerForm =
+    document.getElementById("registerForm");
+
+if (registerForm) {
+
+    registerForm.addEventListener(
+        "submit",
+        function (event) {
+
+            event.preventDefault();
+
+            const name =
+                document
+                    .getElementById("registerName")
+                    .value
+                    .trim();
+
+            const studentId =
+                document
+                    .getElementById("registerStudentId")
+                    .value
+                    .trim();
+
+            const email =
+                document
+                    .getElementById("registerEmail")
+                    .value
+                    .trim()
+                    .toLowerCase();
+
+            const password =
+                document
+                    .getElementById("registerPassword")
+                    .value;
+
+            const course =
+                document
+                    .getElementById("registerCourse")
+                    .value
+                    .trim();
+
+            const department =
+                document
+                    .getElementById("registerDepartment")
+                    .value
+                    .trim();
+
+            const academicYear =
+                document
+                    .getElementById("registerYear")
+                    .value;
+
+            const semester =
+                document
+                    .getElementById("registerSemester")
+                    .value;
+
+
+            if (
+                !name ||
+                !studentId ||
+                !email ||
+                !password ||
+                !course ||
+                !department
+            ) {
+
+                showToast("Please fill all fields.");
+
+                return;
+            }
+
+
+            /*
+               Check duplicate email.
+            */
+
+            const emailExists =
+                users.some(function (user) {
+                    return user.email.toLowerCase() === email;
+                });
+
+            if (emailExists) {
+
+                showToast(
+                    "This email is already registered."
+                );
+
+                return;
+            }
+
+
+            /*
+               Check duplicate student ID.
+            */
+
+            const studentIdExists =
+                users.some(function (user) {
+                    return user.studentId === studentId;
+                });
+
+            if (studentIdExists) {
+
+                showToast(
+                    "This Student ID already exists."
+                );
+
+                return;
+            }
+
+
+            const newUser = {
+
+                id: Date.now(),
+
+                name: name,
+
+                studentId: studentId,
+
+                email: email,
+
+                password: password,
+
+                course: course,
+
+                department: department,
+
+                academicYear: academicYear,
+
+                semester: semester,
+
+                ...createUserData()
+
+            };
+
+
+            users.push(newUser);
+
+            saveUsers();
+
+
+            currentUser = newUser;
+
+            currentUserEmail = email;
+
+
+            localStorage.setItem(
+                "studyMateCurrentUser",
+                email
+            );
+
+
+            showToast(
+                "Account created successfully!"
+            );
+
+
+            setTimeout(function () {
+                openApplication();
+            }, 500);
+
+        }
+    );
+}
+
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+const loginForm =
+    document.getElementById("loginForm");
+
+if (loginForm) {
+
+    loginForm.addEventListener(
+        "submit",
+        function (event) {
+
+            event.preventDefault();
+
+            const email =
+                document
+                    .getElementById("loginEmail")
+                    .value
+                    .trim()
+                    .toLowerCase();
+
+            const password =
+                document
+                    .getElementById("loginPassword")
+                    .value;
+
+
+            const user =
+                users.find(function (item) {
+
+                    return (
+                        item.email.toLowerCase() === email &&
+                        item.password === password
+                    );
+
+                });
+
+
+            if (!user) {
+
+                showToast(
+                    "Invalid email or password."
+                );
+
+                return;
+            }
+
+
+            currentUser =
+                normalizeUser(user);
+
+            currentUserEmail =
+                currentUser.email;
+
+
+            saveUsers();
+
+
+            localStorage.setItem(
+                "studyMateCurrentUser",
+                currentUser.email
+            );
+
+
+            openApplication();
+
+        }
+    );
+}
+
+
+/* =========================================================
+   OPEN APPLICATION
+========================================================= */
+
+function openApplication() {
+
+    if (!currentUser) {
+        return;
+    }
+
+
+    currentUser =
+        normalizeUser(currentUser);
+
+
+    const authScreen =
+        document.getElementById("authScreen");
+
+    const app =
+        document.getElementById("app");
+
+
+    if (authScreen) {
+        authScreen.classList.add("hidden");
+    }
+
+    if (app) {
+        app.classList.remove("hidden");
+    }
+
+
+    renderEverything();
+
+    updateNotifications();
 
 }
 
 
-/* ================= PAGE NAVIGATION ================= */
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+function logout() {
+
+    localStorage.removeItem(
+        "studyMateCurrentUser"
+    );
+
+    currentUser = null;
+
+    currentUserEmail = null;
+
+    location.reload();
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
 
 function showPage(pageId, element) {
 
-    document.querySelectorAll(".page")
-        .forEach(page => page.classList.remove("active-page"));
+    document
+        .querySelectorAll(".page")
+        .forEach(function (page) {
 
-    const page =
+            page.classList.remove("active-page");
+
+        });
+
+
+    const selectedPage =
         document.getElementById(pageId);
 
-    if (page) {
 
-        page.classList.add("active-page");
+    if (selectedPage) {
+
+        selectedPage.classList.add(
+            "active-page"
+        );
 
     }
 
 
-    document.querySelectorAll(".nav-item")
-        .forEach(item => item.classList.remove("active"));
+    document
+        .querySelectorAll(".nav-item")
+        .forEach(function (item) {
+
+            item.classList.remove("active");
+
+        });
 
 
     if (element) {
-
         element.classList.add("active");
-
     }
 
 
     const titles = {
 
         dashboard: "Dashboard",
+
         subjects: "Subjects",
+
         planner: "Study Planner",
+
         tasks: "Tasks",
+
         notes: "Notes",
+
         exams: "Exam Preparation",
+
         timer: "Pomodoro Timer",
+
         profile: "Student Profile",
+
         students: "Student Database"
 
     };
 
 
-    document.getElementById("pageTitle")
-        .textContent = titles[pageId] || "Study Mate";
+    const titleElement =
+        document.getElementById("pageTitle");
 
+
+    if (titleElement) {
+
+        titleElement.textContent =
+            titles[pageId] || "Study Mate";
+
+    }
 }
 
 
-function showPageById(id) {
+function showPageById(pageId) {
 
-    const nav =
-        document.querySelector(
-            `.nav-item[onclick*="${id}"]`
-        );
+    const navItems =
+        document.querySelectorAll(".nav-item");
 
-    showPage(id, nav);
 
+    let targetNav = null;
+
+
+    navItems.forEach(function (item) {
+
+        const onclickValue =
+            item.getAttribute("onclick") || "";
+
+
+        if (
+            onclickValue.includes(
+                "'" + pageId + "'"
+            )
+        ) {
+
+            targetNav = item;
+
+        }
+
+    });
+
+
+    showPage(pageId, targetNav);
 }
 
 
-/* ================= MODALS ================= */
+/* =========================================================
+   MODALS
+========================================================= */
 
 function openModal(id) {
 
-    document
-        .getElementById(id)
-        .classList.add("show");
+    const modal =
+        document.getElementById(id);
 
+    if (modal) {
+        modal.classList.add("show");
+    }
 }
 
 
 function closeModal(id) {
 
-    document
-        .getElementById(id)
-        .classList.remove("show");
+    const modal =
+        document.getElementById(id);
 
+    if (modal) {
+        modal.classList.remove("show");
+    }
 }
 
 
-/* ================= SUBJECTS ================= */
+/*
+   Close modal when clicking outside its content.
+*/
 
-document.getElementById("subjectForm")
-.addEventListener("submit", function(e) {
+document.addEventListener(
+    "click",
+    function (event) {
 
-    e.preventDefault();
+        if (
+            event.target.classList.contains("modal")
+        ) {
 
+            event.target.classList.remove("show");
 
-    const name =
-        document.getElementById("subjectName").value.trim();
+        }
 
-    const difficulty =
-        document.getElementById("subjectDifficulty").value;
-
-
-    currentUser.subjects.push({
-
-        id: Date.now(),
-
-        name,
-
-        difficulty,
-
-        topics: []
-
-    });
+    }
+);
 
 
-    saveUsers();
+/* =========================================================
+   SUBJECTS
+========================================================= */
 
-    this.reset();
+const subjectForm =
+    document.getElementById("subjectForm");
 
-    closeModal("subjectModal");
+if (subjectForm) {
 
-    renderSubjects();
+    subjectForm.addEventListener(
+        "submit",
+        function (event) {
 
-    renderDashboard();
+            event.preventDefault();
 
-    showToast("Subject added.");
+            if (!currentUser) {
+                return;
+            }
 
-});
+
+            const name =
+                document
+                    .getElementById("subjectName")
+                    .value
+                    .trim();
+
+            const difficulty =
+                document
+                    .getElementById("subjectDifficulty")
+                    .value;
+
+
+            if (!name) {
+
+                showToast(
+                    "Please enter a subject name."
+                );
+
+                return;
+            }
+
+
+            currentUser.subjects.push({
+
+                id: Date.now(),
+
+                name: name,
+
+                difficulty: difficulty,
+
+                topics: []
+
+            });
+
+
+            saveUsers();
+
+            subjectForm.reset();
+
+            closeModal("subjectModal");
+
+            renderSubjects();
+
+            renderDashboard();
+
+            showToast(
+                "Subject added successfully."
+            );
+
+        }
+    );
+}
 
 
 function renderSubjects() {
 
     const container =
-        document.getElementById("subjectsContainer");
+        document.getElementById(
+            "subjectsContainer"
+        );
+
+
+    if (!container || !currentUser) {
+        return;
+    }
 
 
     if (!currentUser.subjects.length) {
@@ -422,202 +735,336 @@ function renderSubjects() {
         `;
 
         return;
-
     }
 
 
     container.innerHTML =
-        currentUser.subjects.map(subject => {
+        currentUser.subjects
+            .map(function (subject) {
 
-            const completed =
-                subject.topics.filter(t => t.completed).length;
-
-            const total =
-                subject.topics.length;
-
-            const progress =
-                total
-                    ? Math.round((completed / total) * 100)
-                    : 0;
+                const topics =
+                    Array.isArray(subject.topics)
+                        ? subject.topics
+                        : [];
 
 
-            return `
+                const completed =
+                    topics.filter(function (topic) {
+                        return topic.completed;
+                    }).length;
 
-                <div class="subject-card">
 
-                    <div class="subject-top">
+                const total =
+                    topics.length;
 
-                        <div>
 
-                            <h3>
-                                ${escapeHTML(subject.name)}
-                            </h3>
+                const progress =
+                    total > 0
+                        ? Math.round(
+                            completed /
+                            total *
+                            100
+                        )
+                        : 0;
 
-                            <small>
-                                ${total} topics
-                            </small>
+
+                const topicsHTML =
+                    topics.length
+                        ? topics
+                            .map(function (topic) {
+
+                                return `
+
+                                <label class="topic ${
+                                    topic.completed
+                                        ? "completed"
+                                        : ""
+                                }">
+
+                                    <input
+                                        type="checkbox"
+                                        ${
+                                            topic.completed
+                                                ? "checked"
+                                                : ""
+                                        }
+                                        onchange="
+                                            toggleTopic(
+                                                ${subject.id},
+                                                ${topic.id}
+                                            )
+                                        "
+                                    >
+
+                                    <span>
+                                        ${escapeHTML(
+                                            topic.name
+                                        )}
+                                    </span>
+
+                                </label>
+
+                            `;
+
+                            })
+                            .join("")
+                        : `
+                            <p style="
+                                font-size:12px;
+                                color:var(--muted);
+                            ">
+                                No topics yet.
+                            </p>
+                        `;
+
+
+                return `
+
+                    <div class="subject-card">
+
+                        <div class="subject-top">
+
+                            <div>
+
+                                <h3>
+                                    ${escapeHTML(
+                                        subject.name
+                                    )}
+                                </h3>
+
+                                <small>
+                                    ${total} topic${
+                                        total !== 1
+                                            ? "s"
+                                            : ""
+                                    }
+                                </small>
+
+                            </div>
+
+                            <span class="
+                                difficulty
+                                ${subject.difficulty.toLowerCase()}
+                            ">
+                                ${escapeHTML(
+                                    subject.difficulty
+                                )}
+                            </span>
 
                         </div>
 
-                        <span class="difficulty ${subject.difficulty.toLowerCase()}">
-                            ${subject.difficulty}
-                        </span>
 
-                    </div>
+                        <div class="progress-item">
 
+                            <div class="progress-label">
 
-                    <div class="progress-item">
+                                <span>
+                                    Progress
+                                </span>
 
-                        <div class="progress-label">
+                                <strong>
+                                    ${progress}%
+                                </strong>
 
-                            <span>Progress</span>
+                            </div>
 
-                            <strong>${progress}%</strong>
+                            <div class="progress-bar">
+
+                                <div
+                                    class="progress-fill"
+                                    style="
+                                        width:${progress}%
+                                    "
+                                ></div>
+
+                            </div>
 
                         </div>
 
-                        <div class="progress-bar">
 
-                            <div
-                                class="progress-fill"
-                                style="width:${progress}%"
-                            ></div>
+                        <div class="topic-list">
+
+                            ${topicsHTML}
 
                         </div>
 
-                    </div>
 
-
-                    <div class="topic-list">
-
-                        ${
-                            subject.topics.length
-                                ? subject.topics.map(topic => `
-
-                                    <label class="topic ${topic.completed ? "completed" : ""}">
-
-                                        <input
-                                            type="checkbox"
-                                            ${topic.completed ? "checked" : ""}
-                                            onchange="toggleTopic(${subject.id}, ${topic.id})"
-                                        >
-
-                                        <span>
-                                            ${escapeHTML(topic.name)}
-                                        </span>
-
-                                    </label>
-
-                                `).join("")
-                                : `<p style="font-size:12px;color:var(--muted)">
-                                    No topics yet.
-                                   </p>`
-                        }
+                        <button
+                            class="add-topic-btn"
+                            onclick="
+                                openTopicModal(
+                                    ${subject.id}
+                                )
+                            "
+                        >
+                            + Add Unit / Topic
+                        </button>
 
                     </div>
 
+                `;
 
-                    <button
-                        class="add-topic-btn"
-                        onclick="openTopicModal(${subject.id})"
-                    >
-                        + Add Unit / Topic
-                    </button>
-
-                </div>
-
-            `;
-
-        }).join("");
-
+            })
+            .join("");
 }
 
 
-/* ================= ADD TOPIC ================= */
+/* =========================================================
+   TOPICS
+========================================================= */
 
 function openTopicModal(subjectId) {
 
-    document.getElementById("topicSubjectId").value =
-        subjectId;
+    const input =
+        document.getElementById(
+            "topicSubjectId"
+        );
+
+
+    if (input) {
+        input.value = subjectId;
+    }
+
 
     openModal("topicModal");
-
 }
 
 
-document.getElementById("topicForm")
-.addEventListener("submit", function(e) {
+const topicForm =
+    document.getElementById("topicForm");
 
-    e.preventDefault();
+if (topicForm) {
+
+    topicForm.addEventListener(
+        "submit",
+        function (event) {
+
+            event.preventDefault();
 
 
-    const subjectId =
-        Number(document.getElementById("topicSubjectId").value);
+            const subjectId =
+                Number(
+                    document.getElementById(
+                        "topicSubjectId"
+                    ).value
+                );
 
-    const name =
-        document.getElementById("topicName").value.trim();
 
-    const difficulty =
-        document.getElementById("topicDifficulty").value;
+            const topicName =
+                document.getElementById(
+                    "topicName"
+                ).value.trim();
+
+
+            const difficulty =
+                document.getElementById(
+                    "topicDifficulty"
+                ).value;
+
+
+            const subject =
+                currentUser.subjects.find(
+                    function (item) {
+                        return item.id === subjectId;
+                    }
+                );
+
+
+            if (!subject) {
+
+                showToast(
+                    "Subject not found."
+                );
+
+                return;
+            }
+
+
+            if (!topicName) {
+
+                showToast(
+                    "Please enter a topic."
+                );
+
+                return;
+            }
+
+
+            if (!Array.isArray(subject.topics)) {
+                subject.topics = [];
+            }
+
+
+            subject.topics.push({
+
+                id: Date.now(),
+
+                name: topicName,
+
+                difficulty: difficulty,
+
+                completed: false
+
+            });
+
+
+            saveUsers();
+
+            topicForm.reset();
+
+            closeModal("topicModal");
+
+            renderSubjects();
+
+            renderDashboard();
+
+            showToast(
+                "Topic added successfully."
+            );
+
+        }
+    );
+}
+
+
+/* =========================================================
+   TOGGLE TOPIC
+========================================================= */
+
+function toggleTopic(
+    subjectId,
+    topicId
+) {
+
+    if (!currentUser) {
+        return;
+    }
 
 
     const subject =
         currentUser.subjects.find(
-            s => s.id === subjectId
+            function (item) {
+                return item.id === subjectId;
+            }
         );
 
 
-    if (!subject) return;
-
-
-    subject.topics.push({
-
-        id: Date.now(),
-
-        name,
-
-        difficulty,
-
-        completed: false
-
-    });
-
-
-    saveUsers();
-
-    this.reset();
-
-    closeModal("topicModal");
-
-    renderSubjects();
-
-    renderDashboard();
-
-    showToast("Topic added.");
-
-});
-
-
-/* ================= TOGGLE TOPIC ================= */
-
-function toggleTopic(subjectId, topicId) {
-
-    const subject =
-        currentUser.subjects.find(
-            s => s.id === subjectId
-        );
-
-
-    if (!subject) return;
+    if (!subject) {
+        return;
+    }
 
 
     const topic =
         subject.topics.find(
-            t => t.id === topicId
+            function (item) {
+                return item.id === topicId;
+            }
         );
 
 
-    if (!topic) return;
+    if (!topic) {
+        return;
+    }
 
 
     topic.completed =
@@ -637,63 +1084,154 @@ function toggleTopic(subjectId, topicId) {
 
     renderDashboard();
 
+    updateNotifications();
 }
 
 
-/* ================= TASKS ================= */
+/* =========================================================
+   TASKS
+========================================================= */
 
-document.getElementById("taskForm")
-.addEventListener("submit", function(e) {
+const taskForm =
+    document.getElementById("taskForm");
 
-    e.preventDefault();
+if (taskForm) {
 
+    taskForm.addEventListener(
+        "submit",
+        function (event) {
 
-    currentUser.tasks.push({
-
-        id: Date.now(),
-
-        title:
-            document.getElementById("taskTitle").value.trim(),
-
-        priority:
-            document.getElementById("taskPriority").value,
-
-        dueDate:
-            document.getElementById("taskDueDate").value,
-
-        completed: false
-
-    });
+            event.preventDefault();
 
 
-    saveUsers();
+            const title =
+                document
+                    .getElementById("taskTitle")
+                    .value.trim();
 
-    this.reset();
+            const priority =
+                document.getElementById(
+                    "taskPriority"
+                ).value;
 
-    closeModal("taskModal");
+            const dueDate =
+                document.getElementById(
+                    "taskDueDate"
+                ).value;
 
-    renderTasks();
 
-    renderDashboard();
+            if (!title || !dueDate) {
 
-    showToast("Task added.");
+                showToast(
+                    "Please complete all task fields."
+                );
 
-});
+                return;
+            }
+
+
+            currentUser.tasks.push({
+
+                id: Date.now(),
+
+                title: title,
+
+                priority: priority,
+
+                dueDate: dueDate,
+
+                completed: false
+
+            });
+
+
+            saveUsers();
+
+            taskForm.reset();
+
+            closeModal("taskModal");
+
+            renderTasks();
+
+            renderDashboard();
+
+            updateNotifications();
+
+            showToast(
+                "Task added successfully."
+            );
+
+        }
+    );
+}
 
 
 function filterTasks(filter) {
 
     taskFilter = filter;
 
-    renderTasks();
+    document
+        .querySelectorAll(".filter")
+        .forEach(function (button) {
 
+            button.classList.remove(
+                "active-filter"
+            );
+
+        });
+
+
+    /*
+       Highlight selected filter.
+    */
+
+    const buttons =
+        document.querySelectorAll(".filter");
+
+
+    buttons.forEach(function (button) {
+
+        const text =
+            button.textContent
+                .trim()
+                .toLowerCase();
+
+
+        if (
+            (filter === "all" &&
+                text === "all") ||
+
+            (filter === "pending" &&
+                text === "pending") ||
+
+            (filter === "completed" &&
+                text === "completed")
+        ) {
+
+            button.classList.add(
+                "active-filter"
+            );
+
+        }
+
+    });
+
+
+    renderTasks();
 }
 
 
 function renderTasks() {
 
     const container =
-        document.getElementById("tasksContainer");
+        document.getElementById(
+            "tasksContainer"
+        );
+
+
+    if (!container || !currentUser) {
+        return;
+    }
 
 
     let tasks =
@@ -703,23 +1241,31 @@ function renderTasks() {
     if (taskFilter === "pending") {
 
         tasks =
-            tasks.filter(t => !t.completed);
+            tasks.filter(function (task) {
+                return !task.completed;
+            });
 
     }
+
 
     if (taskFilter === "completed") {
 
         tasks =
-            tasks.filter(t => t.completed);
+            tasks.filter(function (task) {
+                return task.completed;
+            });
 
     }
 
 
-    tasks.sort(
-        (a, b) =>
+    tasks.sort(function (a, b) {
+
+        return (
             new Date(a.dueDate) -
             new Date(b.dueDate)
-    );
+        );
+
+    });
 
 
     if (!tasks.length) {
@@ -728,43 +1274,69 @@ function renderTasks() {
             `<p>No tasks found.</p>`;
 
         return;
-
     }
 
 
     container.innerHTML =
-        tasks.map(task => `
+        tasks.map(function (task) {
 
-            <div class="task-item">
+            return `
 
-                <input
-                    class="task-check"
-                    type="checkbox"
-                    ${task.completed ? "checked" : ""}
-                    onchange="toggleTask(${task.id})"
-                >
+                <div class="task-item">
 
-                <div class="task-content
-                    ${task.completed ? "task-completed" : ""}">
+                    <input
+                        class="task-check"
+                        type="checkbox"
+                        ${
+                            task.completed
+                                ? "checked"
+                                : ""
+                        }
+                        onchange="
+                            toggleTask(
+                                ${task.id}
+                            )
+                        "
+                    >
 
-                    <strong>
-                        ${escapeHTML(task.title)}
-                    </strong>
+                    <div class="
+                        task-content
+                        ${
+                            task.completed
+                                ? "task-completed"
+                                : ""
+                        }
+                    ">
 
-                    <small>
-                        Due: ${formatDate(task.dueDate)}
-                    </small>
+                        <strong>
+                            ${escapeHTML(
+                                task.title
+                            )}
+                        </strong>
+
+                        <small>
+                            Due:
+                            ${formatDate(
+                                task.dueDate
+                            )}
+                        </small>
+
+                    </div>
+
+                    <span class="
+                        priority
+                        priority-${task.priority.toLowerCase()}
+                    ">
+                        ${escapeHTML(
+                            task.priority
+                        )}
+                    </span>
 
                 </div>
 
-                <span class="priority priority-${task.priority.toLowerCase()}">
-                    ${task.priority}
-                </span>
+            `;
 
-            </div>
-
-        `).join("");
-
+        }).join("");
 }
 
 
@@ -772,15 +1344,24 @@ function toggleTask(id) {
 
     const task =
         currentUser.tasks.find(
-            t => t.id === id
+            function (item) {
+                return item.id === id;
+            }
         );
 
 
-    if (!task) return;
+    if (!task) {
+        return;
+    }
 
 
     task.completed =
         !task.completed;
+
+
+    if (task.completed) {
+        recordStudyActivity();
+    }
 
 
     saveUsers();
@@ -789,204 +1370,172 @@ function toggleTask(id) {
 
     renderDashboard();
 
+    updateNotifications();
 }
 
 
-/* ================= NOTES ================= */
+/* =========================================================
+   NOTES
+========================================================= */
 
-document.getElementById("noteForm")
-.addEventListener("submit", function(e) {
+const noteForm =
+    document.getElementById("noteForm");
 
-    e.preventDefault();
+if (noteForm) {
 
+    noteForm.addEventListener(
+        "submit",
+        function (event) {
 
-    currentUser.notes.push({
-
-        id: Date.now(),
-
-        title:
-            document.getElementById("noteTitle").value.trim(),
-
-        subject:
-            document.getElementById("noteSubject").value.trim(),
-
-        content:
-            document.getElementById("noteContent").value.trim(),
-
-        createdAt:
-            new Date().toISOString()
-
-    });
+            event.preventDefault();
 
 
-    saveUsers();
+            const title =
+                document
+                    .getElementById("noteTitle")
+                    .value.trim();
 
-    this.reset();
+            const subject =
+                document
+                    .getElementById("noteSubject")
+                    .value.trim();
 
-    closeModal("noteModal");
+            const content =
+                document
+                    .getElementById("noteContent")
+                    .value.trim();
 
-    renderNotes();
 
-    showToast("Note saved.");
+            if (!title || !content) {
 
-});
+                showToast(
+                    "Please enter a title and content."
+                );
+
+                return;
+            }
+
+
+            currentUser.notes.push({
+
+                id: Date.now(),
+
+                title: title,
+
+                subject: subject,
+
+                content: content,
+
+                createdAt:
+                    new Date().toISOString()
+
+            });
+
+
+            saveUsers();
+
+            noteForm.reset();
+
+            closeModal("noteModal");
+
+            renderNotes();
+
+            showToast(
+                "Note saved successfully."
+            );
+
+        }
+    );
+}
 
 
 function renderNotes() {
 
     const container =
-        document.getElementById("notesContainer");
+        document.getElementById(
+            "notesContainer"
+        );
+
+
+    const searchInput =
+        document.getElementById(
+            "noteSearch"
+        );
+
+
+    if (!container || !currentUser) {
+        return;
+    }
 
 
     const search =
-        document.getElementById("noteSearch")
-            .value
-            .toLowerCase();
+        searchInput
+            ? searchInput.value
+                .trim()
+                .toLowerCase()
+            : "";
 
 
     const notes =
-        currentUser.notes.filter(note =>
+        currentUser.notes.filter(
+            function (note) {
 
-            note.title.toLowerCase().includes(search) ||
+                return (
+                    note.title
+                        .toLowerCase()
+                        .includes(search) ||
 
-            note.content.toLowerCase().includes(search) ||
+                    (note.content || "")
+                        .toLowerCase()
+                        .includes(search) ||
 
-            note.subject.toLowerCase().includes(search)
+                    (note.subject || "")
+                        .toLowerCase()
+                        .includes(search)
+                );
 
+            }
         );
 
 
     if (!notes.length) {
 
-        container.innerHTML =
-            `<div class="panel">
+        container.innerHTML = `
+            <div class="panel">
                 <p>No notes found.</p>
-             </div>`;
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        notes.map(note => `
-
-            <div class="note-card">
-
-                <span class="note-subject">
-                    ${escapeHTML(note.subject || "General")}
-                </span>
-
-                <h3>
-                    ${escapeHTML(note.title)}
-                </h3>
-
-                <p>
-                    ${escapeHTML(note.content)}
-                </p>
-
             </div>
-
-        `).join("");
-
-}
-
-
-/* ================= EXAMS ================= */
-
-document.getElementById("examForm")
-.addEventListener("submit", function(e) {
-
-    e.preventDefault();
-
-
-    currentUser.exams.push({
-
-        id: Date.now(),
-
-        subject:
-            document.getElementById("examSubject").value.trim(),
-
-        date:
-            document.getElementById("examDate").value,
-
-        topics:
-            document.getElementById("examTopics").value.trim()
-
-    });
-
-
-    saveUsers();
-
-    this.reset();
-
-    closeModal("examModal");
-
-    renderExams();
-
-    renderDashboard();
-
-    showToast("Exam added.");
-
-});
-
-
-function renderExams() {
-
-    const container =
-        document.getElementById("examsContainer");
-
-
-    const exams =
-        [...currentUser.exams]
-            .sort(
-                (a,b) =>
-                    new Date(a.date) -
-                    new Date(b.date)
-            );
-
-
-    if (!exams.length) {
-
-        container.innerHTML =
-            `<div class="panel">
-                <p>No exams added yet.</p>
-             </div>`;
+        `;
 
         return;
-
     }
 
 
     container.innerHTML =
-        exams.map(exam => {
-
-            const days =
-                calculateDaysLeft(exam.date);
-
+        notes.map(function (note) {
 
             return `
 
-                <div class="exam-card">
+                <div class="note-card">
+
+                    <span class="note-subject">
+
+                        ${escapeHTML(
+                            note.subject ||
+                            "General"
+                        )}
+
+                    </span>
 
                     <h3>
-                        ${escapeHTML(exam.subject)}
+                        ${escapeHTML(
+                            note.title
+                        )}
                     </h3>
 
-                    <div class="exam-date">
-                        📅 ${formatDate(exam.date)}
-                    </div>
-
-                    <div class="days-left">
-                        ${days >= 0 ? days : 0}
-                    </div>
-
-                    <small>
-                        ${days === 1 ? "day" : "days"} remaining
-                    </small>
-
-                    <p style="margin-top:15px;font-size:12px;color:var(--muted)">
-                        ${escapeHTML(exam.topics || "No important topics added.")}
+                    <p>
+                        ${escapeHTML(
+                            note.content
+                        )}
                     </p>
 
                 </div>
@@ -994,102 +1543,369 @@ function renderExams() {
             `;
 
         }).join("");
-
 }
 
 
-/* ================= SMART PLANNER ================= */
+/* =========================================================
+   EXAMS
+========================================================= */
+
+const examForm =
+    document.getElementById("examForm");
+
+if (examForm) {
+
+    examForm.addEventListener(
+        "submit",
+        function (event) {
+
+            event.preventDefault();
+
+
+            const subject =
+                document
+                    .getElementById(
+                        "examSubject"
+                    )
+                    .value.trim();
+
+            const date =
+                document
+                    .getElementById(
+                        "examDate"
+                    )
+                    .value;
+
+            const topics =
+                document
+                    .getElementById(
+                        "examTopics"
+                    )
+                    .value.trim();
+
+
+            if (!subject || !date) {
+
+                showToast(
+                    "Please enter the subject and exam date."
+                );
+
+                return;
+            }
+
+
+            currentUser.exams.push({
+
+                id: Date.now(),
+
+                subject: subject,
+
+                date: date,
+
+                topics: topics
+
+            });
+
+
+            saveUsers();
+
+            examForm.reset();
+
+            closeModal("examModal");
+
+            renderExams();
+
+            renderDashboard();
+
+            updateNotifications();
+
+            showToast(
+                "Exam added successfully."
+            );
+
+        }
+    );
+}
+
+
+function renderExams() {
+
+    const container =
+        document.getElementById(
+            "examsContainer"
+        );
+
+
+    if (!container || !currentUser) {
+        return;
+    }
+
+
+    const exams =
+        [...currentUser.exams]
+            .sort(function (a, b) {
+
+                return (
+                    new Date(a.date) -
+                    new Date(b.date)
+                );
+
+            });
+
+
+    if (!exams.length) {
+
+        container.innerHTML = `
+            <div class="panel">
+                <p>No exams added yet.</p>
+            </div>
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        exams.map(function (exam) {
+
+            const days =
+                calculateDaysLeft(
+                    exam.date
+                );
+
+
+            const remaining =
+                days >= 0
+                    ? days
+                    : 0;
+
+
+            return `
+
+                <div class="exam-card">
+
+                    <h3>
+                        ${escapeHTML(
+                            exam.subject
+                        )}
+                    </h3>
+
+                    <div class="exam-date">
+
+                        📅
+                        ${formatDate(
+                            exam.date
+                        )}
+
+                    </div>
+
+                    <div class="days-left">
+                        ${remaining}
+                    </div>
+
+                    <small>
+                        ${
+                            days === 1
+                                ? "day"
+                                : "days"
+                        }
+                        remaining
+                    </small>
+
+                    <p style="
+                        margin-top:15px;
+                        font-size:12px;
+                        color:var(--muted);
+                    ">
+
+                        ${escapeHTML(
+                            exam.topics ||
+                            "No important topics added."
+                        )}
+
+                    </p>
+
+                </div>
+
+            `;
+
+        }).join("");
+}
+
+
+/* =========================================================
+   SMART PLANNER
+========================================================= */
 
 function generatePlanner() {
 
     const examDate =
-        document.getElementById("plannerExamDate").value;
+        document.getElementById(
+            "plannerExamDate"
+        ).value;
 
     const hours =
         Number(
-            document.getElementById("plannerHours").value
+            document.getElementById(
+                "plannerHours"
+            ).value
         );
 
     const startTime =
-        document.getElementById("plannerStartTime").value;
+        document.getElementById(
+            "plannerStartTime"
+        ).value;
 
 
     if (!examDate) {
 
-        showToast("Please enter an exam date.");
+        showToast(
+            "Please enter an exam date."
+        );
 
         return;
+    }
 
+
+    if (!hours || hours < 1) {
+
+        showToast(
+            "Study hours must be at least 1."
+        );
+
+        return;
+    }
+
+
+    if (!startTime) {
+
+        showToast(
+            "Please select a start time."
+        );
+
+        return;
     }
 
 
     if (!currentUser.subjects.length) {
 
-        showToast("Add subjects and topics first.");
+        showToast(
+            "Add subjects and topics first."
+        );
 
         return;
-
     }
 
+
+    const today =
+        new Date();
+
+    today.setHours(0, 0, 0, 0);
+
+
+    const finalExamDate =
+        new Date(examDate);
+
+    finalExamDate.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+
+    if (finalExamDate < today) {
+
+        showToast(
+            "Exam date cannot be in the past."
+        );
+
+        return;
+    }
+
+
+    /*
+       Collect incomplete topics.
+    */
 
     let topics = [];
 
 
-    currentUser.subjects.forEach(subject => {
+    currentUser.subjects.forEach(
+        function (subject) {
 
-        subject.topics
-            .filter(topic => !topic.completed)
-            .forEach(topic => {
-
-                let priority = 1;
-
-
-                if (topic.difficulty === "Medium")
-                    priority = 2;
-
-                if (topic.difficulty === "Hard")
-                    priority = 3;
+            const subjectDifficulty =
+                difficultyScore(
+                    subject.difficulty
+                );
 
 
-                if (subject.difficulty === "Hard")
-                    priority += 1;
+            const subjectTopics =
+                Array.isArray(subject.topics)
+                    ? subject.topics
+                    : [];
 
 
-                topics.push({
+            subjectTopics
+                .filter(function (topic) {
+                    return !topic.completed;
+                })
+                .forEach(function (topic) {
 
-                    subject:
-                        subject.name,
+                    const topicDifficulty =
+                        difficultyScore(
+                            topic.difficulty
+                        );
 
-                    topic:
-                        topic.name,
 
-                    difficulty:
-                        topic.difficulty,
+                    topics.push({
 
-                    priority
+                        subject:
+                            subject.name,
+
+                        topic:
+                            topic.name,
+
+                        difficulty:
+                            topic.difficulty,
+
+                        priority:
+                            subjectDifficulty +
+                            topicDifficulty
+
+                    });
 
                 });
 
-            });
-
-    });
-
-
-    topics.sort(
-        (a,b) =>
-            b.priority -
-            a.priority
+        }
     );
 
 
     if (!topics.length) {
 
-        showToast("All topics are already completed!");
+        showToast(
+            "All topics are already completed!"
+        );
 
         return;
-
     }
 
+
+    /*
+       Highest difficulty first.
+    */
+
+    topics.sort(function (a, b) {
+
+        return b.priority - a.priority;
+
+    });
+
+
+    /*
+       Maximum sessions per day.
+       Each session = 1 hour.
+    */
 
     const sessionsPerDay =
         Math.max(
@@ -1101,66 +1917,115 @@ function generatePlanner() {
     const schedule = [];
 
 
-    for (
-        let i = 0;
-        i < topics.length;
-        i++
+    let topicIndex = 0;
+
+    let dayOffset = 0;
+
+
+    while (
+        topicIndex < topics.length
     ) {
 
-        const dayOffset =
-            Math.floor(
-                i / sessionsPerDay
-            );
+        /*
+           Stop generating beyond exam date.
+        */
 
+        const sessionDate =
+            new Date(today);
 
-        const date =
-            new Date();
-
-
-        date.setDate(
-            date.getDate() + dayOffset
+        sessionDate.setDate(
+            today.getDate() + dayOffset
         );
 
 
-        let sessionIndex =
-            i % sessionsPerDay;
+        if (
+            sessionDate >
+            finalExamDate
+        ) {
+            break;
+        }
 
 
-        const start =
-            convertTimeToMinutes(startTime) +
-            sessionIndex * 75;
+        for (
+            let sessionIndex = 0;
+            sessionIndex < sessionsPerDay &&
+            topicIndex < topics.length;
+            sessionIndex++
+        ) {
+
+            const start =
+                convertTimeToMinutes(
+                    startTime
+                ) +
+                sessionIndex * 75;
 
 
-        const end =
-            start + 60;
+            const end =
+                start + 60;
 
 
-        schedule.push({
+            /*
+               Prevent scheduling beyond midnight.
+            */
 
-            id: Date.now() + i,
+            if (end >= 24 * 60) {
+                break;
+            }
 
-            date:
-                date.toISOString().split("T")[0],
 
-            subject:
-                topics[i].subject,
+            schedule.push({
 
-            topic:
-                topics[i].topic,
+                id:
+                    Date.now() +
+                    schedule.length,
 
-            difficulty:
-                topics[i].difficulty,
+                date:
+                    dateToLocalISO(
+                        sessionDate
+                    ),
 
-            start:
-                minutesToTime(start),
+                subject:
+                    topics[topicIndex].subject,
 
-            end:
-                minutesToTime(end),
+                topic:
+                    topics[topicIndex].topic,
 
-            status:
-                "scheduled"
+                difficulty:
+                    topics[topicIndex].difficulty,
 
-        });
+                start:
+                    minutesToTime(start),
+
+                end:
+                    minutesToTime(end),
+
+                status:
+                    "scheduled"
+
+            });
+
+
+            topicIndex++;
+
+        }
+
+
+        dayOffset++;
+
+    }
+
+
+    /*
+       If some topics couldn't fit before exam.
+    */
+
+    if (
+        topicIndex < topics.length
+    ) {
+
+        showToast(
+            "Not enough study time before the exam. Schedule was filled as much as possible."
+        );
 
     }
 
@@ -1175,15 +2040,27 @@ function generatePlanner() {
 
     renderDashboard();
 
-    showToast("Smart schedule generated!");
-
+    showToast(
+        "Smart schedule generated!"
+    );
 }
 
+
+/* =========================================================
+   PLANNER RENDER
+========================================================= */
 
 function renderPlanner() {
 
     const container =
-        document.getElementById("plannerResult");
+        document.getElementById(
+            "plannerResult"
+        );
+
+
+    if (!container || !currentUser) {
+        return;
+    }
 
 
     if (!currentUser.planner.length) {
@@ -1192,67 +2069,142 @@ function renderPlanner() {
             `<p>No schedule generated yet.</p>`;
 
         return;
-
     }
 
 
+    const sortedPlanner =
+        [...currentUser.planner]
+            .sort(function (a, b) {
+
+                return (
+                    new Date(
+                        a.date + "T" + a.start
+                    ) -
+                    new Date(
+                        b.date + "T" + b.start
+                    )
+                );
+
+            });
+
+
     container.innerHTML =
-        currentUser.planner.map(session => `
+        sortedPlanner
+            .map(function (session) {
 
-            <div class="plan-item">
+                const completed =
+                    session.status === "completed";
 
-                <div class="plan-time">
 
-                    ${formatDate(session.date)}
-                    <br>
+                return `
 
-                    ${session.start} -
-                    ${session.end}
+                    <div class="plan-item">
 
-                </div>
+                        <div class="plan-time">
 
-                <div class="plan-info">
+                            ${formatDate(
+                                session.date
+                            )}
 
-                    <strong>
-                        ${escapeHTML(session.subject)}
-                    </strong>
+                            <br>
 
-                    <span>
-                        ${escapeHTML(session.topic)}
-                        • ${session.difficulty}
-                    </span>
+                            ${session.start}
+                            -
+                            ${session.end}
 
-                </div>
+                        </div>
 
-                <div style="margin-left:auto">
+                        <div class="plan-info">
 
-                    <button
-                        class="secondary-btn"
-                        onclick="completeSession(${session.id})"
-                    >
-                        ✓
-                    </button>
+                            <strong>
+                                ${escapeHTML(
+                                    session.subject
+                                )}
+                            </strong>
 
-                </div>
+                            <span>
+                                ${escapeHTML(
+                                    session.topic
+                                )}
 
-            </div>
+                                •
+                                ${escapeHTML(
+                                    session.difficulty
+                                )}
 
-        `).join("");
+                            </span>
 
+                        </div>
+
+                        <div style="
+                            margin-left:auto;
+                        ">
+
+                            ${
+                                completed
+                                    ? `
+                                        <span
+                                            class="secondary-btn"
+                                            style="
+                                                display:inline-block;
+                                                cursor:default;
+                                            "
+                                        >
+                                            ✓ Done
+                                        </span>
+                                      `
+                                    : `
+                                        <button
+                                            class="secondary-btn"
+                                            onclick="
+                                                completeSession(
+                                                    ${session.id}
+                                                )
+                                            "
+                                        >
+                                            ✓
+                                        </button>
+                                      `
+                            }
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            })
+            .join("");
 }
 
 
-/* ================= SESSION ================= */
+/* =========================================================
+   COMPLETE STUDY SESSION
+========================================================= */
 
 function completeSession(id) {
 
     const session =
         currentUser.planner.find(
-            s => s.id === id
+            function (item) {
+                return item.id === id;
+            }
         );
 
 
-    if (!session) return;
+    if (!session) {
+        return;
+    }
+
+
+    if (session.status === "completed") {
+
+        showToast(
+            "This session is already completed."
+        );
+
+        return;
+    }
 
 
     session.status =
@@ -1264,74 +2216,147 @@ function completeSession(id) {
 
     recordStudyActivity();
 
+
     saveUsers();
 
     renderPlanner();
 
     renderDashboard();
 
-    showToast("Study session completed!");
+    updateNotifications();
 
+
+    showToast(
+        "Study session completed!"
+    );
 }
 
 
+/* =========================================================
+   RESCHEDULE MISSED SESSIONS
+========================================================= */
+
 function rescheduleMissedSessions() {
+
+    if (!currentUser.planner.length) {
+
+        showToast(
+            "No study schedule exists."
+        );
+
+        return;
+    }
+
+
+    const today =
+        new Date();
+
+    today.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
 
     const missed =
         currentUser.planner.filter(
-            s => s.status === "scheduled" &&
-                 new Date(s.date) < new Date()
+            function (session) {
+
+                return (
+                    session.status ===
+                    "scheduled" &&
+
+                    new Date(
+                        session.date
+                    ) < today
+                );
+
+            }
         );
 
 
     if (!missed.length) {
 
-        showToast("No missed sessions found.");
+        showToast(
+            "No missed sessions found."
+        );
 
         return;
-
     }
 
 
-    missed.forEach(session => {
+    /*
+       Find next available date.
+    */
 
-        session.date =
-            new Date(
-                Date.now() +
-                86400000
-            )
-            .toISOString()
-            .split("T")[0];
+    let nextDate =
+        new Date(today);
 
-    });
+
+    missed.forEach(
+        function (session) {
+
+            /*
+               Move session forward one day
+               at a time until it is not in
+               the past.
+            */
+
+            nextDate.setDate(
+                nextDate.getDate() + 1
+            );
+
+
+            session.date =
+                dateToLocalISO(
+                    nextDate
+                );
+
+        }
+    );
 
 
     saveUsers();
 
     renderPlanner();
 
-    showToast(
-        `${missed.length} session(s) rescheduled.`
-    );
+    renderDashboard();
 
+    showToast(
+        missed.length +
+        " missed session(s) rescheduled."
+    );
 }
 
 
-/* ================= POMODORO ================= */
+/* =========================================================
+   POMODORO TIMER
+========================================================= */
 
 function startTimer() {
 
-    if (timerInterval) return;
+    if (timerInterval !== null) {
+        return;
+    }
 
 
     timerInterval =
-        setInterval(() => {
+        setInterval(function () {
 
             if (timerSeconds <= 0) {
 
-                clearInterval(timerInterval);
+                clearInterval(
+                    timerInterval
+                );
 
                 timerInterval = null;
+
+
+                /*
+                   Add focus time only if
+                   this was a 25-minute session.
+                */
 
                 currentUser.studyMinutes += 25;
 
@@ -1341,14 +2366,15 @@ function startTimer() {
 
                 renderDashboard();
 
+
                 showToast(
                     "Pomodoro completed! Great work."
                 );
 
+
                 setTimer(5);
 
                 return;
-
             }
 
 
@@ -1357,16 +2383,20 @@ function startTimer() {
             updateTimerDisplay();
 
         }, 1000);
-
 }
 
 
 function pauseTimer() {
 
-    clearInterval(timerInterval);
+    if (timerInterval !== null) {
 
-    timerInterval = null;
+        clearInterval(
+            timerInterval
+        );
 
+        timerInterval = null;
+
+    }
 }
 
 
@@ -1374,10 +2404,23 @@ function resetTimer() {
 
     pauseTimer();
 
-    timerSeconds = 25 * 60;
+    timerSeconds =
+        25 * 60;
+
+
+    const mode =
+        document.getElementById(
+            "timerMode"
+        );
+
+
+    if (mode) {
+        mode.textContent =
+            "FOCUS SESSION";
+    }
+
 
     updateTimerDisplay();
-
 }
 
 
@@ -1385,162 +2428,322 @@ function setTimer(minutes) {
 
     pauseTimer();
 
-    timerSeconds = minutes * 60;
+    timerSeconds =
+        minutes * 60;
 
-    document.getElementById("timerMode")
-        .textContent =
-        minutes <= 5
-            ? "BREAK"
-            : "FOCUS SESSION";
+
+    const mode =
+        document.getElementById(
+            "timerMode"
+        );
+
+
+    if (mode) {
+
+        mode.textContent =
+            minutes <= 5
+                ? "BREAK"
+                : "FOCUS SESSION";
+
+    }
+
 
     updateTimerDisplay();
-
 }
 
 
 function updateTimerDisplay() {
 
+    const display =
+        document.getElementById(
+            "timerDisplay"
+        );
+
+
+    if (!display) {
+        return;
+    }
+
+
     const minutes =
-        Math.floor(timerSeconds / 60);
+        Math.floor(
+            timerSeconds / 60
+        );
+
 
     const seconds =
         timerSeconds % 60;
 
 
-    document.getElementById("timerDisplay")
-        .textContent =
-        `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}`;
-
+    display.textContent =
+        String(minutes).padStart(2, "0") +
+        ":" +
+        String(seconds).padStart(2, "0");
 }
 
 
-/* ================= PROFILE ================= */
+/* =========================================================
+   PROFILE
+========================================================= */
 
 function renderProfile() {
 
-    document.getElementById("profileName").value =
-        currentUser.name;
-
-    document.getElementById("profileStudentId").value =
-        currentUser.studentId;
-
-    document.getElementById("profileEmail").value =
-        currentUser.email;
-
-    document.getElementById("profileCourse").value =
-        currentUser.course;
-
-    document.getElementById("profileDepartment").value =
-        currentUser.department;
-
-    document.getElementById("profileYear").value =
-        currentUser.academicYear;
-
-    document.getElementById("profileSemester").value =
-        currentUser.semester;
+    if (!currentUser) {
+        return;
+    }
 
 
-    document.getElementById("profileAvatar")
-        .textContent =
-        currentUser.name.charAt(0).toUpperCase();
+    const fields = {
 
+        profileName:
+            currentUser.name,
+
+        profileStudentId:
+            currentUser.studentId,
+
+        profileEmail:
+            currentUser.email,
+
+        profileCourse:
+            currentUser.course,
+
+        profileDepartment:
+            currentUser.department,
+
+        profileYear:
+            currentUser.academicYear,
+
+        profileSemester:
+            currentUser.semester
+
+    };
+
+
+    Object.keys(fields).forEach(
+        function (id) {
+
+            const element =
+                document.getElementById(id);
+
+
+            if (element) {
+
+                element.value =
+                    fields[id] || "";
+
+            }
+
+        }
+    );
+
+
+    const avatar =
+        document.getElementById(
+            "profileAvatar"
+        );
+
+
+    if (avatar) {
+
+        avatar.textContent =
+            currentUser.name
+                .charAt(0)
+                .toUpperCase();
+
+    }
 }
 
 
 function saveProfile() {
 
+    if (!currentUser) {
+        return;
+    }
+
+
+    const getValue =
+        function (id) {
+
+            const element =
+                document.getElementById(id);
+
+            return element
+                ? element.value.trim()
+                : "";
+
+        };
+
+
     currentUser.name =
-        document.getElementById("profileName").value;
+        getValue("profileName");
 
     currentUser.studentId =
-        document.getElementById("profileStudentId").value;
+        getValue("profileStudentId");
 
     currentUser.course =
-        document.getElementById("profileCourse").value;
+        getValue("profileCourse");
 
     currentUser.department =
-        document.getElementById("profileDepartment").value;
+        getValue("profileDepartment");
 
     currentUser.academicYear =
-        document.getElementById("profileYear").value;
+        getValue("profileYear");
 
     currentUser.semester =
-        document.getElementById("profileSemester").value;
+        getValue("profileSemester");
+
+
+    /*
+       Email is intentionally not editable here,
+       because it is being used as the login key.
+    */
 
 
     saveUsers();
 
     renderEverything();
 
-    showToast("Profile updated.");
-
+    showToast(
+        "Profile updated successfully."
+    );
 }
 
 
-/* ================= DATABASE ================= */
+/* =========================================================
+   STUDENT DATABASE
+========================================================= */
 
 function renderStudentDatabase() {
 
     const body =
-        document.getElementById("studentTableBody");
+        document.getElementById(
+            "studentTableBody"
+        );
 
 
-    document.getElementById(
-        "databaseStudentCount"
-    ).textContent =
-        users.length;
+    const count =
+        document.getElementById(
+            "databaseStudentCount"
+        );
+
+
+    if (count) {
+
+        count.textContent =
+            users.length;
+
+    }
+
+
+    if (!body) {
+        return;
+    }
+
+
+    if (!users.length) {
+
+        body.innerHTML = `
+            <tr>
+                <td colspan="6">
+                    No registered students.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
 
 
     body.innerHTML =
-        users.map(user => `
+        users.map(function (user) {
 
-            <tr>
+            return `
 
-                <td>
-                    ${escapeHTML(user.studentId)}
-                </td>
+                <tr>
 
-                <td>
-                    ${escapeHTML(user.name)}
-                </td>
+                    <td>
+                        ${escapeHTML(
+                            user.studentId
+                        )}
+                    </td>
 
-                <td>
-                    ${escapeHTML(user.email)}
-                </td>
+                    <td>
+                        ${escapeHTML(
+                            user.name
+                        )}
+                    </td>
 
-                <td>
-                    ${escapeHTML(user.course)}
-                </td>
+                    <td>
+                        ${escapeHTML(
+                            user.email
+                        )}
+                    </td>
 
-                <td>
-                    ${escapeHTML(user.department)}
-                </td>
+                    <td>
+                        ${escapeHTML(
+                            user.course
+                        )}
+                    </td>
 
-                <td>
-                    ${escapeHTML(user.academicYear)}
-                </td>
+                    <td>
+                        ${escapeHTML(
+                            user.department
+                        )}
+                    </td>
 
-            </tr>
+                    <td>
+                        ${escapeHTML(
+                            user.academicYear
+                        )}
+                    </td>
 
-        `).join("");
+                </tr>
 
+            `;
+
+        }).join("");
 }
 
 
-/* ================= DASHBOARD ================= */
+/* =========================================================
+   DASHBOARD
+========================================================= */
 
 function renderDashboard() {
 
-    document.getElementById("dashboardName")
-        .textContent =
-        currentUser.name;
+    if (!currentUser) {
+        return;
+    }
 
 
-    document.getElementById("topAvatar")
-        .textContent =
-        currentUser.name
-            .charAt(0)
-            .toUpperCase();
+    const dashboardName =
+        document.getElementById(
+            "dashboardName"
+        );
+
+
+    if (dashboardName) {
+
+        dashboardName.textContent =
+            currentUser.name;
+
+    }
+
+
+    const topAvatar =
+        document.getElementById(
+            "topAvatar"
+        );
+
+
+    if (topAvatar) {
+
+        topAvatar.textContent =
+            currentUser.name
+                .charAt(0)
+                .toUpperCase();
+
+    }
 
 
     let totalTopics = 0;
@@ -1548,20 +2751,32 @@ function renderDashboard() {
     let completedTopics = 0;
 
 
-    currentUser.subjects.forEach(subject => {
+    currentUser.subjects.forEach(
+        function (subject) {
 
-        totalTopics += subject.topics.length;
+            const topics =
+                Array.isArray(subject.topics)
+                    ? subject.topics
+                    : [];
 
-        completedTopics +=
-            subject.topics
-                .filter(t => t.completed)
-                .length;
 
-    });
+            totalTopics +=
+                topics.length;
+
+
+            completedTopics +=
+                topics.filter(
+                    function (topic) {
+                        return topic.completed;
+                    }
+                ).length;
+
+        }
+    );
 
 
     const progress =
-        totalTopics
+        totalTopics > 0
             ? Math.round(
                 completedTopics /
                 totalTopics *
@@ -1570,25 +2785,63 @@ function renderDashboard() {
             : 0;
 
 
-    document.getElementById("completedTopics")
-        .textContent =
-        completedTopics;
+    const completedElement =
+        document.getElementById(
+            "completedTopics"
+        );
 
 
-    document.getElementById("overallProgress")
-        .textContent =
-        progress + "%";
+    if (completedElement) {
+
+        completedElement.textContent =
+            completedTopics;
+
+    }
 
 
-    document.getElementById("totalStudyHours")
-        .textContent =
-        (currentUser.studyMinutes / 60)
-            .toFixed(1) + "h";
+    const progressElement =
+        document.getElementById(
+            "overallProgress"
+        );
 
 
-    document.getElementById("studyStreak")
-        .textContent =
-        currentUser.streak;
+    if (progressElement) {
+
+        progressElement.textContent =
+            progress + "%";
+
+    }
+
+
+    const hoursElement =
+        document.getElementById(
+            "totalStudyHours"
+        );
+
+
+    if (hoursElement) {
+
+        hoursElement.textContent =
+            (
+                currentUser.studyMinutes /
+                60
+            ).toFixed(1) + "h";
+
+    }
+
+
+    const streakElement =
+        document.getElementById(
+            "studyStreak"
+        );
+
+
+    if (streakElement) {
+
+        streakElement.textContent =
+            currentUser.streak || 0;
+
+    }
 
 
     renderTodayPlan();
@@ -1598,78 +2851,121 @@ function renderDashboard() {
     renderDashboardTasks();
 
     renderNextExam();
-
 }
 
 
-/* ================= TODAY PLAN ================= */
+/* =========================================================
+   TODAY'S PLAN
+========================================================= */
 
 function renderTodayPlan() {
 
     const container =
-        document.getElementById("todayPlan");
+        document.getElementById(
+            "todayPlan"
+        );
+
+
+    if (!container || !currentUser) {
+        return;
+    }
 
 
     const today =
-        new Date()
-            .toISOString()
-            .split("T")[0];
+        dateToLocalISO(
+            new Date()
+        );
 
 
     const sessions =
-        currentUser.planner.filter(
-            s => s.date === today
-        );
+        currentUser.planner
+            .filter(function (session) {
+
+                return (
+                    session.date === today
+                );
+
+            })
+            .sort(function (a, b) {
+
+                return a.start.localeCompare(
+                    b.start
+                );
+
+            });
 
 
     if (!sessions.length) {
 
-        container.innerHTML =
-            `<p style="font-size:12px;color:var(--muted)">
+        container.innerHTML = `
+            <p style="
+                font-size:12px;
+                color:var(--muted);
+            ">
                 No study sessions scheduled for today.
-             </p>`;
+            </p>
+        `;
 
         return;
-
     }
 
 
     container.innerHTML =
-        sessions.slice(0,5).map(session => `
+        sessions.slice(0, 5)
+            .map(function (session) {
 
-            <div class="plan-item">
+                return `
 
-                <div class="plan-time">
-                    ${session.start}
-                    -
-                    ${session.end}
-                </div>
+                    <div class="plan-item">
 
-                <div class="plan-info">
+                        <div class="plan-time">
 
-                    <strong>
-                        ${escapeHTML(session.subject)}
-                    </strong>
+                            ${session.start}
+                            -
+                            ${session.end}
 
-                    <span>
-                        ${escapeHTML(session.topic)}
-                    </span>
+                        </div>
 
-                </div>
+                        <div class="plan-info">
 
-            </div>
+                            <strong>
+                                ${escapeHTML(
+                                    session.subject
+                                )}
+                            </strong>
 
-        `).join("");
+                            <span>
+                                ${escapeHTML(
+                                    session.topic
+                                )}
+                            </span>
 
+                        </div>
+
+                    </div>
+
+                `;
+
+            })
+            .join("");
 }
 
 
-/* ================= SUBJECT PROGRESS ================= */
+/* =========================================================
+   SUBJECT PROGRESS
+========================================================= */
 
 function renderSubjectProgress() {
 
     const container =
-        document.getElementById("subjectProgress");
+        document.getElementById(
+            "subjectProgress"
+        );
+
+
+    if (!container || !currentUser) {
+        return;
+    }
 
 
     if (!currentUser.subjects.length) {
@@ -1678,77 +2974,110 @@ function renderSubjectProgress() {
             `<p>No subjects added.</p>`;
 
         return;
-
     }
 
 
     container.innerHTML =
-        currentUser.subjects.map(subject => {
+        currentUser.subjects
+            .map(function (subject) {
 
-            const total =
-                subject.topics.length;
-
-            const completed =
-                subject.topics
-                    .filter(t => t.completed)
-                    .length;
-
-            const progress =
-                total
-                    ? Math.round(
-                        completed /
-                        total *
-                        100
-                    )
-                    : 0;
+                const topics =
+                    Array.isArray(subject.topics)
+                        ? subject.topics
+                        : [];
 
 
-            return `
+                const total =
+                    topics.length;
 
-                <div class="progress-item">
 
-                    <div class="progress-label">
+                const completed =
+                    topics.filter(
+                        function (topic) {
+                            return topic.completed;
+                        }
+                    ).length;
 
-                        <span>
-                            ${escapeHTML(subject.name)}
-                        </span>
 
-                        <strong>
-                            ${progress}%
-                        </strong>
+                const progress =
+                    total > 0
+                        ? Math.round(
+                            completed /
+                            total *
+                            100
+                        )
+                        : 0;
+
+
+                return `
+
+                    <div class="progress-item">
+
+                        <div class="progress-label">
+
+                            <span>
+                                ${escapeHTML(
+                                    subject.name
+                                )}
+                            </span>
+
+                            <strong>
+                                ${progress}%
+                            </strong>
+
+                        </div>
+
+                        <div class="progress-bar">
+
+                            <div
+                                class="progress-fill"
+                                style="
+                                    width:${progress}%
+                                "
+                            ></div>
+
+                        </div>
 
                     </div>
 
-                    <div class="progress-bar">
+                `;
 
-                        <div
-                            class="progress-fill"
-                            style="width:${progress}%"
-                        ></div>
-
-                    </div>
-
-                </div>
-
-            `;
-
-        }).join("");
-
+            })
+            .join("");
 }
 
 
-/* ================= DASHBOARD TASKS ================= */
+/* =========================================================
+   DASHBOARD TASKS
+========================================================= */
 
 function renderDashboardTasks() {
 
     const container =
-        document.getElementById("dashboardTasks");
+        document.getElementById(
+            "dashboardTasks"
+        );
+
+
+    if (!container || !currentUser) {
+        return;
+    }
 
 
     const tasks =
         currentUser.tasks
-            .filter(t => !t.completed)
-            .slice(0,5);
+            .filter(function (task) {
+                return !task.completed;
+            })
+            .sort(function (a, b) {
+
+                return (
+                    new Date(a.dueDate) -
+                    new Date(b.dueDate)
+                );
+
+            })
+            .slice(0, 5);
 
 
     if (!tasks.length) {
@@ -1757,44 +3086,62 @@ function renderDashboardTasks() {
             `<p>No pending tasks.</p>`;
 
         return;
-
     }
 
 
     container.innerHTML =
-        tasks.map(task => `
+        tasks.map(function (task) {
 
-            <div class="task-item">
+            return `
 
-                <input
-                    type="checkbox"
-                    onchange="toggleTask(${task.id})"
-                >
+                <div class="task-item">
 
-                <div class="task-content">
+                    <input
+                        type="checkbox"
+                        onchange="
+                            toggleTask(
+                                ${task.id}
+                            )
+                        "
+                    >
 
-                    <strong>
-                        ${escapeHTML(task.title)}
-                    </strong>
+                    <div class="task-content">
 
-                    <small>
-                        Due ${formatDate(task.dueDate)}
-                    </small>
+                        <strong>
+                            ${escapeHTML(
+                                task.title
+                            )}
+                        </strong>
+
+                        <small>
+                            Due
+                            ${formatDate(
+                                task.dueDate
+                            )}
+                        </small>
+
+                    </div>
+
+                    <span class="
+                        priority
+                        priority-${task.priority.toLowerCase()}
+                    ">
+                        ${escapeHTML(
+                            task.priority
+                        )}
+                    </span>
 
                 </div>
 
-                <span class="priority priority-${task.priority.toLowerCase()}">
-                    ${task.priority}
-                </span>
+            `;
 
-            </div>
-
-        `).join("");
-
+        }).join("");
 }
 
 
-/* ================= NEXT EXAM ================= */
+/* =========================================================
+   NEXT EXAM
+========================================================= */
 
 function renderNextExam() {
 
@@ -1804,86 +3151,104 @@ function renderNextExam() {
         );
 
 
-    if (!currentUser.exams.length) {
-
-        countdown.textContent =
-            "No exam";
-
+    if (!countdown || !currentUser) {
         return;
-
     }
 
 
-    const exams =
+    const upcomingExams =
         currentUser.exams
-            .filter(
-                exam =>
-                    calculateDaysLeft(exam.date) >= 0
-            )
-            .sort(
-                (a,b) =>
+            .filter(function (exam) {
+
+                return (
+                    calculateDaysLeft(
+                        exam.date
+                    ) >= 0
+                );
+
+            })
+            .sort(function (a, b) {
+
+                return (
                     new Date(a.date) -
                     new Date(b.date)
-            );
+                );
+
+            });
 
 
-    if (!exams.length) {
+    if (!upcomingExams.length) {
 
         countdown.textContent =
             "No upcoming exam";
 
         return;
-
     }
 
 
-    const exam = exams[0];
+    const exam =
+        upcomingExams[0];
+
 
     const days =
-        calculateDaysLeft(exam.date);
+        calculateDaysLeft(
+            exam.date
+        );
 
 
     countdown.textContent =
-        `${days} day${days !== 1 ? "s" : ""} — ${exam.subject}`;
-
+        days +
+        (days === 1 ? " day" : " days") +
+        " — " +
+        exam.subject;
 }
 
 
-/* ================= STREAK ================= */
+/* =========================================================
+   STUDY STREAK
+========================================================= */
 
 function recordStudyActivity() {
 
+    if (!currentUser) {
+        return;
+    }
+
+
     const today =
-        new Date()
-            .toISOString()
-            .split("T")[0];
+        dateToLocalISO(
+            new Date()
+        );
 
 
     if (
-        currentUser.lastStudyDate === today
+        currentUser.lastStudyDate ===
+        today
     ) {
 
         return;
-
     }
 
 
     if (currentUser.lastStudyDate) {
 
         const previous =
-            new Date(
+            parseLocalDate(
                 currentUser.lastStudyDate
             );
 
+
         const current =
-            new Date(today);
+            parseLocalDate(
+                today
+            );
 
 
         const difference =
-            Math.floor(
+            Math.round(
                 (
-                    current -
-                    previous
+                    current.getTime() -
+                    previous.getTime()
                 ) /
                 86400000
             );
@@ -1891,7 +3256,10 @@ function recordStudyActivity() {
 
         if (difference === 1) {
 
-            currentUser.streak++;
+            currentUser.streak =
+                Number(
+                    currentUser.streak || 0
+                ) + 1;
 
         } else {
 
@@ -1908,139 +3276,358 @@ function recordStudyActivity() {
 
     currentUser.lastStudyDate =
         today;
-
 }
 
 
-/* ================= DARK MODE ================= */
+/* =========================================================
+   DARK MODE
+========================================================= */
 
 function toggleDarkMode() {
 
-    document.body.classList.toggle("dark");
+    document.body.classList.toggle(
+        "dark"
+    );
+
 
     localStorage.setItem(
         "studyMateDarkMode",
-        document.body.classList.contains("dark")
+        document.body.classList.contains(
+            "dark"
+        )
     );
-
 }
 
 
-if (
-    localStorage.getItem("studyMateDarkMode")
-    === "true"
-) {
+function restoreDarkMode() {
 
-    document.body.classList.add("dark");
+    const enabled =
+        localStorage.getItem(
+            "studyMateDarkMode"
+        );
 
+
+    if (enabled === "true") {
+
+        document.body.classList.add(
+            "dark"
+        );
+
+    }
 }
 
 
-/* ================= UTILITIES ================= */
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+function updateNotifications() {
+
+    const element =
+        document.getElementById(
+            "notificationCount"
+        );
+
+
+    if (!element || !currentUser) {
+        return;
+    }
+
+
+    let count = 0;
+
+
+    count += currentUser.tasks.filter(
+        function (task) {
+            return !task.completed;
+        }
+    ).length;
+
+
+    count += currentUser.exams.filter(
+        function (exam) {
+
+            const days =
+                calculateDaysLeft(
+                    exam.date
+                );
+
+
+            return (
+                days >= 0 &&
+                days <= 7
+            );
+
+        }
+    ).length;
+
+
+    element.textContent =
+        count;
+}
+
+
+/* =========================================================
+   UTILITY FUNCTIONS
+========================================================= */
+
+function difficultyScore(difficulty) {
+
+    switch (difficulty) {
+
+        case "Hard":
+            return 3;
+
+        case "Medium":
+            return 2;
+
+        case "Easy":
+            return 1;
+
+        default:
+            return 1;
+
+    }
+}
+
 
 function calculateDaysLeft(dateString) {
+
+    if (!dateString) {
+        return 0;
+    }
+
 
     const today =
         new Date();
 
-    today.setHours(0,0,0,0);
+
+    today.setHours(
+        0,
+        0,
+        0,
+        0
+    );
 
 
-    const exam =
-        new Date(dateString);
-
-    exam.setHours(0,0,0,0);
+    const target =
+        parseLocalDate(
+            dateString
+        );
 
 
     return Math.ceil(
-        (exam - today) /
+        (
+            target.getTime() -
+            today.getTime()
+        ) /
         86400000
     );
-
 }
 
 
-function formatDate(date) {
+function parseLocalDate(dateString) {
 
-    if (!date) return "-";
+    const parts =
+        dateString
+            .split("-")
+            .map(Number);
 
 
-    return new Date(date)
-        .toLocaleDateString("en-IN", {
+    return new Date(
+        parts[0],
+        parts[1] - 1,
+        parts[2]
+    );
+}
+
+
+function dateToLocalISO(date) {
+
+    const year =
+        date.getFullYear();
+
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+
+    return (
+        year +
+        "-" +
+        month +
+        "-" +
+        day
+    );
+}
+
+
+function formatDate(dateString) {
+
+    if (!dateString) {
+        return "-";
+    }
+
+
+    const date =
+        parseLocalDate(
+            dateString
+        );
+
+
+    return date.toLocaleDateString(
+        "en-IN",
+        {
             day: "2-digit",
             month: "short",
             year: "numeric"
-        });
-
+        }
+    );
 }
 
 
 function convertTimeToMinutes(time) {
 
-    const [hours, minutes] =
-        time.split(":")
-            .map(Number);
+    if (!time) {
+        return 0;
+    }
 
-    return hours * 60 + minutes;
 
+    const parts =
+        time.split(":");
+
+
+    const hours =
+        Number(parts[0]) || 0;
+
+
+    const minutes =
+        Number(parts[1]) || 0;
+
+
+    return (
+        hours * 60 +
+        minutes
+    );
 }
 
 
 function minutesToTime(minutes) {
 
+    /*
+       Keep time inside 24 hours.
+    */
+
     minutes =
-        minutes % (24 * 60);
+        ((minutes % 1440) + 1440) %
+        1440;
 
 
     const hours =
-        Math.floor(minutes / 60);
+        Math.floor(
+            minutes / 60
+        );
+
 
     const mins =
         minutes % 60;
 
 
-    return `${String(hours).padStart(2,"0")}:${String(mins).padStart(2,"0")}`;
-
+    return (
+        String(hours).padStart(2, "0") +
+        ":" +
+        String(mins).padStart(2, "0")
+    );
 }
 
 
 function showToast(message) {
 
     const toast =
-        document.getElementById("toast");
+        document.getElementById(
+            "toast"
+        );
+
+
+    if (!toast) {
+        return;
+    }
 
 
     toast.textContent =
         message;
 
 
-    toast.classList.add("show");
+    toast.classList.add(
+        "show"
+    );
 
 
-    setTimeout(() => {
+    clearTimeout(
+        showToast.timeout
+    );
 
-        toast.classList.remove("show");
 
-    }, 2500);
+    showToast.timeout =
+        setTimeout(
+            function () {
 
+                toast.classList.remove(
+                    "show"
+                );
+
+            },
+            2500
+        );
 }
 
 
-function escapeHTML(text) {
+function escapeHTML(value) {
 
-    return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-
+    return String(
+        value ?? ""
+    )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
 }
 
 
-/* ================= RENDER EVERYTHING ================= */
+/* =========================================================
+   RENDER EVERYTHING
+========================================================= */
 
 function renderEverything() {
+
+    if (!currentUser) {
+        return;
+    }
+
 
     renderDashboard();
 
@@ -2058,46 +3645,27 @@ function renderEverything() {
 
     renderStudentDatabase();
 
-}
-
-
-/* ================= NOTIFICATION ================= */
-
-function updateNotifications() {
-
-    let count = 0;
-
-
-    count += currentUser.tasks
-        .filter(t => !t.completed)
-        .length;
-
-
-    count += currentUser.exams
-        .filter(
-            e =>
-                calculateDaysLeft(e.date) <= 7 &&
-                calculateDaysLeft(e.date) >= 0
-        )
-        .length;
-
-
-    document.getElementById(
-        "notificationCount"
-    ).textContent =
-        count;
+    updateNotifications();
 
 }
 
 
-setInterval(() => {
+/* =========================================================
+   PERIODIC UPDATES
+========================================================= */
 
-    if (currentUser) {
+setInterval(
+    function () {
+
+        if (!currentUser) {
+            return;
+        }
+
 
         updateNotifications();
 
         renderNextExam();
 
-    }
-
-}, 60000);
+    },
+    60000
+);
