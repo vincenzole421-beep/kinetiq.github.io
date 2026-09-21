@@ -1,941 +1,1315 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KinetiQ - AI Automated Study Planner & Focus Engine</title>
 
-    <title>Study Mate - Smart Study Planner</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        },
+                        dark: {
+                            bg: '#090d16',
+                            card: '#111827',
+                            border: '#1f293d',
+                            hover: '#1e293b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
 
-    <link rel="stylesheet" href="style.css">
-
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #060911;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card {
+            background: rgba(23, 32, 54, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+        }
+
+        .glow-purple {
+            box-shadow: 0 0 25px -5px rgba(139, 92, 246, 0.4);
+        }
+
+        .glow-cyan {
+            box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.4);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f293d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #7c3aed;
+        }
+
+        /* Progress ring transition */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
 </head>
-
-<body>
-
-<!-- ================= LOGIN / REGISTER ================= -->
-
-<div id="authScreen" class="auth-screen">
-
-    <div class="auth-card">
-
-        <div class="brand">
-            <div class="logo">SM</div>
-            <div>
-                <h1>STUDY MATE</h1>
-                <p>Smart Study. Better Results.</p>
-            </div>
-        </div>
-
-        <div id="loginBox">
-
-            <h2>Welcome Back 👋</h2>
-            <p class="auth-subtitle">Login to continue your study journey.</p>
-
-            <form id="loginForm">
-
-                <label>Email</label>
-                <input type="email" id="loginEmail" placeholder="Enter your email" required>
-
-                <label>Password</label>
-                <input type="password" id="loginPassword" placeholder="Enter your password" required>
-
-                <button class="primary-btn" type="submit">
-                    Login
-                </button>
-
-            </form>
-
-            <p class="switch-text">
-                Don't have an account?
-                <button onclick="showRegister()">Create Account</button>
-            </p>
-
-        </div>
-
-
-        <div id="registerBox" class="hidden">
-
-            <h2>Create Student Account</h2>
-            <p class="auth-subtitle">Create your STUDY MATE profile.</p>
-
-            <form id="registerForm">
-
-                <label>Full Name</label>
-                <input type="text" id="registerName" placeholder="Enter your name" required>
-
-                <label>Student ID</label>
-                <input type="text" id="registerStudentId" placeholder="STU001" required>
-
-                <label>Email</label>
-                <input type="email" id="registerEmail" placeholder="student@email.com" required>
-
-                <label>Password</label>
-                <input type="password" id="registerPassword" placeholder="Create password" required>
-
-                <label>Course</label>
-                <input type="text" id="registerCourse" placeholder="B.Tech Computer Science" required>
-
-                <label>Department</label>
-                <input type="text" id="registerDepartment" placeholder="Computer Science Engineering" required>
-
-                <label>Academic Year</label>
-                <select id="registerYear">
-                    <option>2026 - 2027</option>
-                    <option>2027 - 2028</option>
-                    <option>2028 - 2029</option>
-                </select>
-
-                <label>Semester</label>
-                <select id="registerSemester">
-                    <option>1</option>
-                    <option>2</option>
-                    <option>3</option>
-                    <option>4</option>
-                    <option>5</option>
-                    <option>6</option>
-                    <option>7</option>
-                    <option>8</option>
-                </select>
-
-                <button class="primary-btn" type="submit">
-                    Register
-                </button>
-
-            </form>
-
-            <p class="switch-text">
-                Already have an account?
-                <button onclick="showLogin()">Login</button>
-            </p>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- ================= MAIN APPLICATION ================= -->
-
-<div id="app" class="app hidden">
-
-    <!-- SIDEBAR -->
-
-    <aside class="sidebar">
-
-        <div class="sidebar-logo">
-            <div class="logo">SM</div>
-
-            <div>
-                <strong>STUDY MATE</strong>
-                <small>Smart Study Planner</small>
-            </div>
-        </div>
-
-
-        <nav>
-
-            <button class="nav-item active" onclick="showPage('dashboard', this)">
-                🏠 Dashboard
-            </button>
-
-            <button class="nav-item" onclick="showPage('subjects', this)">
-                📚 Subjects
-            </button>
-
-            <button class="nav-item" onclick="showPage('planner', this)">
-                📅 Study Planner
-            </button>
-
-            <button class="nav-item" onclick="showPage('tasks', this)">
-                ✅ Tasks
-            </button>
-
-            <button class="nav-item" onclick="showPage('notes', this)">
-                📝 Notes
-            </button>
-
-            <button class="nav-item" onclick="showPage('exams', this)">
-                🎯 Exams
-            </button>
-
-            <button class="nav-item" onclick="showPage('timer', this)">
-                ⏱ Pomodoro
-            </button>
-
-            <button class="nav-item" onclick="showPage('profile', this)">
-                👤 Profile
-            </button>
-
-            <button class="nav-item" onclick="showPage('students', this)">
-                🗄 Student Database
-            </button>
-
-        </nav>
-
-
-        <div class="sidebar-bottom">
-
-            <button onclick="toggleDarkMode()" class="side-action">
-                🌙 Dark Mode
-            </button>
-
-            <button onclick="logout()" class="side-action logout">
-                🚪 Logout
-            </button>
-
-        </div>
-
-    </aside>
-
-
-    <!-- MAIN -->
-
-    <main class="main">
-
-        <!-- TOPBAR -->
-
-        <header class="topbar">
-
-            <div>
-                <h2 id="pageTitle">Dashboard</h2>
-                <p id="currentDate"></p>
-            </div>
-
-            <div class="top-profile">
-
-                <div class="notification">
-                    🔔
-                    <span id="notificationCount">0</span>
+<body class="min-h-screen text-slate-100 flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('dashboard')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center glow-purple">
+                    <i data-lucide="zap" class="w-6 h-6 text-white"></i>
                 </div>
-
-                <div class="avatar" id="topAvatar">
-                    S
-                </div>
-
-            </div>
-
-        </header>
-
-
-        <!-- ================= DASHBOARD ================= -->
-
-        <section id="dashboard" class="page active-page">
-
-            <div class="welcome-card">
-
                 <div>
-                    <span class="small-label">WELCOME BACK</span>
+                    <span class="text-xl font-extrabold tracking-wider bg-gradient-to-r from-white via-brand-100 to-brand-400 bg-clip-text text-transparent">
+                        KinetiQ
+                    </span>
+                    <span class="hidden sm:inline-block text-[10px] uppercase tracking-widest text-brand-400 bg-brand-900/50 px-2 py-0.5 rounded-full ml-2 border border-brand-500/30">
+                        AI Study OS
+                    </span>
+                </div>
+            </div>
 
-                    <h1>
-                        Hello, <span id="dashboardName">Student</span> 👋
+            <!-- Desktop Nav Links -->
+            <nav class="hidden md:flex items-center space-x-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 text-brand-400 bg-brand-500/10">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+                </button>
+                <button onclick="switchTab('ai-generator')" id="nav-ai-generator" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-brand-400"></i> AI Timetable
+                </button>
+                <button onclick="switchTab('tasks')" id="nav-tasks" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all flex items-center gap-2">
+                    <i data-lucide="check-square" class="w-4 h-4"></i> Planner & Tasks
+                </button>
+                <button onclick="switchTab('focus')" id="nav-focus" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all flex items-center gap-2">
+                    <i data-lucide="timer" class="w-4 h-4 text-cyan-400"></i> Focus Engine
+                </button>
+            </nav>
+
+            <!-- Actions & Database Status Badge -->
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Local DB Active</span>
+                </div>
+                
+                <button onclick="openDataModal()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700" title="Database Controls">
+                    <i data-lucide="database" class="w-5 h-5"></i>
+                </button>
+
+                <!-- Mobile Menu Button -->
+                <button onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-xl bg-slate-800 text-slate-300">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Drawer Menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-slate-800 bg-slate-950/95 px-4 pt-2 pb-4 space-y-2">
+            <button onclick="switchTab('dashboard'); toggleMobileMenu()" class="w-full px-4 py-2.5 rounded-lg text-left text-sm font-medium text-white bg-brand-600/20 flex items-center gap-3">
+                <i data-lucide="layout-dashboard" class="w-5 h-5 text-brand-400"></i> Dashboard
+            </button>
+            <button onclick="switchTab('ai-generator'); toggleMobileMenu()" class="w-full px-4 py-2.5 rounded-lg text-left text-sm font-medium text-slate-300 hover:bg-slate-800 flex items-center gap-3">
+                <i data-lucide="sparkles" class="w-5 h-5 text-brand-400"></i> AI Timetable & Generator
+            </button>
+            <button onclick="switchTab('tasks'); toggleMobileMenu()" class="w-full px-4 py-2.5 rounded-lg text-left text-sm font-medium text-slate-300 hover:bg-slate-800 flex items-center gap-3">
+                <i data-lucide="check-square" class="w-5 h-5 text-emerald-400"></i> Planner & Micro Tasks
+            </button>
+            <button onclick="switchTab('focus'); toggleMobileMenu()" class="w-full px-4 py-2.5 rounded-lg text-left text-sm font-medium text-slate-300 hover:bg-slate-800 flex items-center gap-3">
+                <i data-lucide="timer" class="w-5 h-5 text-cyan-400"></i> Pomodoro Focus Engine
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+        <section id="tab-dashboard" class="tab-content space-y-8">
+            <!-- Welcome Banner -->
+            <div class="relative overflow-hidden rounded-2xl glass-panel p-6 md:p-8 border border-brand-500/20 bg-gradient-to-r from-brand-900/30 via-slate-900/80 to-slate-900/90">
+                <div class="relative z-10 max-w-2xl">
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                        Welcome back, <span class="bg-gradient-to-r from-brand-400 to-indigo-300 bg-clip-text text-transparent">Scholar</span> 🚀
                     </h1>
-
-                    <p>
-                        Stay consistent and keep moving toward your goals.
+                    <p class="mt-2 text-slate-400 text-sm sm:text-base leading-relaxed">
+                        KinetiQ has optimized your study workflow for today. You have <span id="dash-pending-count" class="font-bold text-brand-300">3 tasks</span> remaining and a study target of 4 hours.
                     </p>
-                </div>
-
-                <div class="exam-countdown">
-
-                    <span>Next Exam</span>
-
-                    <strong id="dashboardCountdown">
-                        No exam
-                    </strong>
-
-                </div>
-
-            </div>
-
-
-            <div class="stats-grid">
-
-                <div class="stat-card">
-                    <div class="stat-icon">⏱</div>
-                    <span>Study Hours</span>
-                    <strong id="totalStudyHours">0h</strong>
-                    <small>This week</small>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon">📚</div>
-                    <span>Topics Completed</span>
-                    <strong id="completedTopics">0</strong>
-                    <small>All subjects</small>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon">📈</div>
-                    <span>Overall Progress</span>
-                    <strong id="overallProgress">0%</strong>
-                    <small>Current progress</small>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon">🔥</div>
-                    <span>Study Streak</span>
-                    <strong id="studyStreak">0</strong>
-                    <small>Days</small>
-                </div>
-
-            </div>
-
-
-            <div class="dashboard-grid">
-
-                <div class="panel">
-
-                    <div class="panel-header">
-                        <div>
-                            <h3>Today's Study Plan</h3>
-                            <p>Your scheduled sessions</p>
-                        </div>
-
-                        <button class="text-btn" onclick="showPageById('planner')">
-                            View All
+                    <div class="mt-5 flex flex-wrap gap-3">
+                        <button onclick="switchTab('ai-generator')" class="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm transition-all shadow-lg shadow-brand-600/30 flex items-center gap-2">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i> Generate New Study Plan
+                        </button>
+                        <button onclick="switchTab('focus')" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-sm transition-all border border-slate-700 flex items-center gap-2">
+                            <i data-lucide="play-circle" class="w-4 h-4 text-cyan-400"></i> Start Focus Session
                         </button>
                     </div>
-
-                    <div id="todayPlan"></div>
-
                 </div>
-
-
-                <div class="panel">
-
-                    <div class="panel-header">
-                        <div>
-                            <h3>Subject Progress</h3>
-                            <p>Track your learning</p>
-                        </div>
-                    </div>
-
-                    <div id="subjectProgress"></div>
-
-                </div>
-
+                <!-- Subtle background glow -->
+                <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-brand-600/10 rounded-full blur-3xl pointer-events-none"></div>
             </div>
 
-
-            <div class="panel">
-
-                <div class="panel-header">
-
+            <!-- Stats Metric Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="glass-card rounded-2xl p-5 border border-slate-800 flex items-center justify-between">
                     <div>
-                        <h3>Upcoming Tasks</h3>
-                        <p>Don't miss your deadlines</p>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Study Streak</p>
+                        <h3 id="stat-streak" class="text-2xl font-bold text-white mt-1">7 Days 🔥</h3>
+                        <p class="text-xs text-emerald-400 mt-1 flex items-center gap-1">
+                            <i data-lucide="trending-up" class="w-3 h-3"></i> +2 days this week
+                        </p>
                     </div>
-
-                    <button class="text-btn" onclick="showPageById('tasks')">
-                        Manage Tasks
-                    </button>
-
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                        <i data-lucide="flame" class="w-6 h-6"></i>
+                    </div>
                 </div>
 
-                <div id="dashboardTasks"></div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= SUBJECTS ================= -->
-
-        <section id="subjects" class="page">
-
-            <div class="section-heading">
-
-                <div>
-                    <h2>Subjects</h2>
-                    <p>Manage subjects and topics.</p>
-                </div>
-
-                <button class="primary-btn small" onclick="openModal('subjectModal')">
-                    + Add Subject
-                </button>
-
-            </div>
-
-            <div id="subjectsContainer" class="subjects-grid"></div>
-
-        </section>
-
-
-        <!-- ================= PLANNER ================= -->
-
-        <section id="planner" class="page">
-
-            <div class="section-heading">
-
-                <div>
-                    <h2>Smart Study Planner</h2>
-                    <p>Generate a personalized study schedule.</p>
-                </div>
-
-            </div>
-
-
-            <div class="planner-config panel">
-
-                <div class="form-grid">
-
+                <div class="glass-card rounded-2xl p-5 border border-slate-800 flex items-center justify-between">
                     <div>
-                        <label>Exam Date</label>
-                        <input type="date" id="plannerExamDate">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Focus Hours</p>
+                        <h3 id="stat-hours" class="text-2xl font-bold text-white mt-1">18.5 hrs</h3>
+                        <p class="text-xs text-brand-400 mt-1 flex items-center gap-1">
+                            <i data-lucide="clock" class="w-3 h-3"></i> Target: 25 hrs/wk
+                        </p>
                     </div>
+                    <div class="w-12 h-12 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
+                        <i data-lucide="timer" class="w-6 h-6"></i>
+                    </div>
+                </div>
 
+                <div class="glass-card rounded-2xl p-5 border border-slate-800 flex items-center justify-between">
                     <div>
-                        <label>Study Hours Per Day</label>
-                        <input type="number" id="plannerHours" min="1" max="12" value="3">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tasks Completed</p>
+                        <h3 id="stat-tasks" class="text-2xl font-bold text-white mt-1">14 / 20</h3>
+                        <p class="text-xs text-emerald-400 mt-1 flex items-center gap-1">
+                            <i data-lucide="check-circle-2" class="w-3 h-3"></i> 70% Completion rate
+                        </p>
                     </div>
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <i data-lucide="check-square" class="w-6 h-6"></i>
+                    </div>
+                </div>
 
+                <div class="glass-card rounded-2xl p-5 border border-slate-800 flex items-center justify-between">
                     <div>
-                        <label>Preferred Start Time</label>
-                        <input type="time" id="plannerStartTime" value="18:00">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Syllabus Progress</p>
+                        <h3 id="stat-syllabus" class="text-2xl font-bold text-white mt-1">62%</h3>
+                        <p class="text-xs text-cyan-400 mt-1 flex items-center gap-1">
+                            <i data-lucide="book-open" class="w-3 h-3"></i> 3 Subjects Active
+                        </p>
                     </div>
-
+                    <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                        <i data-lucide="pie-chart" class="w-6 h-6"></i>
+                    </div>
                 </div>
-
-                <button class="primary-btn" onclick="generatePlanner()">
-                    ✨ Generate Smart Schedule
-                </button>
-
             </div>
 
+            <!-- Chart & Quick Tasks Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Weekly Analytics Chart -->
+                <div class="lg:col-span-2 glass-panel p-6 rounded-2xl border border-slate-800">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="bar-chart-3" class="w-5 h-5 text-brand-400"></i>
+                                Weekly Focus Analytics
+                            </h2>
+                            <p class="text-xs text-slate-400">Hours spent studying across subjects this week</p>
+                        </div>
+                        <span class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700">Last 7 Days</span>
+                    </div>
+                    <div class="h-64 w-full relative">
+                        <canvas id="focusChart"></canvas>
+                    </div>
+                </div>
 
-            <div class="panel">
-
-                <div class="panel-header">
-
+                <!-- Today's Quick Priority Tasks -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col justify-between">
                     <div>
-                        <h3>Generated Schedule</h3>
-                        <p>Difficulty and exam urgency are considered.</p>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="list-todo" class="w-5 h-5 text-amber-400"></i>
+                                Priority Focus Today
+                            </h2>
+                            <button onclick="switchTab('tasks')" class="text-xs text-brand-400 hover:text-brand-300 transition-colors">View All</button>
+                        </div>
+                        <div id="dash-priority-tasks" class="space-y-3">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-slate-800/80 text-center">
+                        <p class="text-xs text-slate-400">Need to restructure your schedule?</p>
+                        <button onclick="switchTab('ai-generator')" class="mt-2 w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition-colors border border-slate-700">
+                            Launch AI Schedule Planner
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-ai-generator" class="tab-content hidden space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Input Controls -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i data-lucide="sparkles" class="w-5 h-5 text-brand-400"></i>
+                            AI Study Plan Creator
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Input your subject parameters to generate a balanced timetable & breakdown micro-tasks automatically.</p>
                     </div>
 
-                    <button class="secondary-btn" onclick="rescheduleMissedSessions()">
-                        🔄 Reschedule Missed
-                    </button>
+                    <form id="ai-generator-form" onsubmit="handleGeneratePlan(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Subject / Course Name</label>
+                            <input type="text" id="ai-subject" required placeholder="e.g. Advanced Data Structures" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition-colors">
+                        </div>
 
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Priority Level</label>
+                                <select id="ai-priority" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition-colors">
+                                    <option value="High">High Priority</option>
+                                    <option value="Medium" selected>Medium Priority</option>
+                                    <option value="Low">Low Priority</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Difficulty (1-5)</label>
+                                <select id="ai-difficulty" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition-colors">
+                                    <option value="1">1 - Easy</option>
+                                    <option value="2">2 - Moderate</option>
+                                    <option value="3" selected>3 - Challenging</option>
+                                    <option value="4">4 - Hard</option>
+                                    <option value="5">5 - Intensive</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Target Exam Date</label>
+                                <input type="date" id="ai-exam-date" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Weekly Goal (Hrs)</label>
+                                <input type="number" id="ai-hours" min="1" max="40" value="8" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition-colors">
+                            </div>
+                        </div>
+
+                        <button type="submit" id="ai-submit-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm transition-all shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2">
+                            <i data-lucide="cpu" class="w-4 h-4"></i> Generate Plan & Timetable
+                        </button>
+                    </form>
                 </div>
 
-                <div id="plannerResult"></div>
+                <!-- Generated Timetable & Task Output -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Weekly Timetable Grid Card -->
+                    <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="calendar" class="w-5 h-5 text-indigo-400"></i>
+                                Generated Weekly Timetable
+                            </h3>
+                            <span class="text-xs text-slate-400">Auto-balanced for optimal retention</span>
+                        </div>
 
-            </div>
-
-        </section>
-
-
-        <!-- ================= TASKS ================= -->
-
-        <section id="tasks" class="page">
-
-            <div class="section-heading">
-
-                <div>
-                    <h2>Tasks</h2>
-                    <p>Manage assignments and study tasks.</p>
-                </div>
-
-                <button class="primary-btn small" onclick="openModal('taskModal')">
-                    + Add Task
-                </button>
-
-            </div>
-
-            <div class="task-filters">
-
-                <button onclick="filterTasks('all')" class="filter active-filter">
-                    All
-                </button>
-
-                <button onclick="filterTasks('pending')" class="filter">
-                    Pending
-                </button>
-
-                <button onclick="filterTasks('completed')" class="filter">
-                    Completed
-                </button>
-
-            </div>
-
-            <div class="panel">
-
-                <div id="tasksContainer"></div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= NOTES ================= -->
-
-        <section id="notes" class="page">
-
-            <div class="section-heading">
-
-                <div>
-                    <h2>Notes</h2>
-                    <p>Keep your study materials organized.</p>
-                </div>
-
-                <button class="primary-btn small" onclick="openModal('noteModal')">
-                    + New Note
-                </button>
-
-            </div>
-
-            <div class="search-box">
-
-                🔎
-                <input
-                    type="text"
-                    id="noteSearch"
-                    placeholder="Search notes..."
-                    oninput="renderNotes()"
-                >
-
-            </div>
-
-            <div id="notesContainer" class="notes-grid"></div>
-
-        </section>
-
-
-        <!-- ================= EXAMS ================= -->
-
-        <section id="exams" class="page">
-
-            <div class="section-heading">
-
-                <div>
-                    <h2>Exam Preparation</h2>
-                    <p>Track your upcoming examinations.</p>
-                </div>
-
-                <button class="primary-btn small" onclick="openModal('examModal')">
-                    + Add Exam
-                </button>
-
-            </div>
-
-            <div id="examsContainer" class="exam-grid"></div>
-
-        </section>
-
-
-        <!-- ================= TIMER ================= -->
-
-        <section id="timer" class="page">
-
-            <div class="timer-container">
-
-                <div class="timer-card">
-
-                    <span id="timerMode">FOCUS SESSION</span>
-
-                    <div id="timerDisplay">
-                        25:00
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+                                        <th class="py-3 px-3">Day</th>
+                                        <th class="py-3 px-3">Morning (09:00 - 11:00)</th>
+                                        <th class="py-3 px-3">Afternoon (14:00 - 16:00)</th>
+                                        <th class="py-3 px-3">Evening (19:00 - 21:00)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="timetable-body" class="divide-y divide-slate-800/50 text-slate-300">
+                                    <!-- Dynamic Timetable Rows -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
-                    <div class="timer-buttons">
+                    <!-- AI Generated Micro-Tasks Decomposition -->
+                    <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-4">
+                            <i data-lucide="git-merge" class="w-5 h-5 text-brand-400"></i>
+                            AI Micro-Task Decomposition
+                        </h3>
+                        <p class="text-xs text-slate-400 mb-4">The AI breaks complex subjects into bite-sized actionable modules added straight to your planner:</p>
 
-                        <button class="primary-btn" onclick="startTimer()">
-                            ▶ Start
-                        </button>
-
-                        <button class="secondary-btn" onclick="pauseTimer()">
-                            ⏸ Pause
-                        </button>
-
-                        <button class="secondary-btn" onclick="resetTimer()">
-                            ↻ Reset
-                        </button>
-
+                        <div id="ai-generated-micro-tasks" class="space-y-2">
+                            <div class="text-center py-8 text-slate-500 text-sm">
+                                Fill out the form above to generate smart syllabus micro-tasks.
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="timer-modes">
-
-                        <button onclick="setTimer(25)">
-                            25 min
-                        </button>
-
-                        <button onclick="setTimer(50)">
-                            50 min
-                        </button>
-
-                        <button onclick="setTimer(5)">
-                            Break
-                        </button>
-
-                    </div>
-
                 </div>
-
             </div>
-
         </section>
 
+        <section id="tab-tasks" class="tab-content hidden space-y-6">
+            <!-- Planner Controls Bar -->
+            <div class="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <!-- Search & Filters -->
+                <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                    <div class="relative w-full sm:w-64">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+                        <input type="text" id="task-search" oninput="renderTaskList()" placeholder="Search tasks or subjects..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
+                    </div>
 
-        <!-- ================= PROFILE ================= -->
+                    <select id="task-filter-status" onchange="renderTaskList()" class="w-full sm:w-auto bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
+                        <option value="ALL">All Status</option>
+                        <option value="PENDING">Pending Tasks</option>
+                        <option value="COMPLETED">Completed Tasks</option>
+                    </select>
 
-        <section id="profile" class="page">
-
-            <div class="section-heading">
-
-                <div>
-                    <h2>Student Profile</h2>
-                    <p>Your academic information.</p>
+                    <select id="task-filter-priority" onchange="renderTaskList()" class="w-full sm:w-auto bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500">
+                        <option value="ALL">All Priorities</option>
+                        <option value="High">High Priority</option>
+                        <option value="Medium">Medium Priority</option>
+                        <option value="Low">Low Priority</option>
+                    </select>
                 </div>
 
-                <button class="primary-btn small" onclick="saveProfile()">
-                    Save Changes
+                <!-- Add Custom Task Button -->
+                <button onclick="openAddTaskModal()" class="w-full md:w-auto px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm transition-all shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Add Custom Task
                 </button>
-
             </div>
 
-
-            <div class="profile-card panel">
-
-                <div class="profile-avatar" id="profileAvatar">
-                    S
+            <!-- Task List Container -->
+            <div class="glass-panel rounded-2xl border border-slate-800 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i data-lucide="list" class="w-5 h-5 text-brand-400"></i>
+                        Study Task Modules
+                    </h2>
+                    <span id="task-count-badge" class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700">0 Tasks</span>
                 </div>
 
-                <div class="profile-form">
-
-                    <div class="form-grid">
-
-                        <div>
-                            <label>Full Name</label>
-                            <input id="profileName">
-                        </div>
-
-                        <div>
-                            <label>Student ID</label>
-                            <input id="profileStudentId">
-                        </div>
-
-                        <div>
-                            <label>Email</label>
-                            <input id="profileEmail">
-                        </div>
-
-                        <div>
-                            <label>Course</label>
-                            <input id="profileCourse">
-                        </div>
-
-                        <div>
-                            <label>Department</label>
-                            <input id="profileDepartment">
-                        </div>
-
-                        <div>
-                            <label>Academic Year</label>
-                            <input id="profileYear">
-                        </div>
-
-                        <div>
-                            <label>Semester</label>
-                            <input id="profileSemester">
-                        </div>
-
-                    </div>
-
+                <div id="tasks-container" class="divide-y divide-slate-800/60">
+                    <!-- Dynamic tasks list -->
                 </div>
-
             </div>
-
         </section>
 
+        <section id="tab-focus" class="tab-content hidden space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Interactive Pomodoro Timer -->
+                <div class="lg:col-span-2 glass-panel p-8 rounded-2xl border border-slate-800 flex flex-col items-center justify-center relative overflow-hidden">
+                    
+                    <!-- Mode Switcher -->
+                    <div class="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 mb-8 z-10">
+                        <button id="pomo-mode-work" onclick="setTimerMode('work')" class="px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-brand-600 text-white shadow-md">
+                            Focus Session (25m)
+                        </button>
+                        <button id="pomo-mode-short" onclick="setTimerMode('short')" class="px-5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all">
+                            Short Break (5m)
+                        </button>
+                        <button id="pomo-mode-long" onclick="setTimerMode('long')" class="px-5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all">
+                            Long Break (15m)
+                        </button>
+                    </div>
 
-        <!-- ================= STUDENT DATABASE ================= -->
+                    <!-- SVG Ring Timer Display -->
+                    <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center my-4">
+                        <svg class="w-full h-full" viewBox="0 0 100 100">
+                            <!-- Background Circle -->
+                            <circle class="text-slate-800" stroke-width="6" stroke="currentColor" fill="transparent" r="42" cx="50" cy="50" />
+                            <!-- Animated Progress Circle -->
+                            <circle id="timer-progress-circle" class="text-brand-500 progress-ring__circle" stroke-width="6" stroke-linecap="round" stroke="currentColor" fill="transparent" r="42" cx="50" cy="50" stroke-dasharray="263.89" stroke-dashoffset="0" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                            <span id="timer-display" class="text-5xl sm:text-6xl font-extrabold tracking-tight text-white font-mono">25:00</span>
+                            <span id="timer-status-label" class="text-xs font-semibold uppercase tracking-widest text-brand-400 mt-2">Ready to Focus</span>
+                        </div>
+                    </div>
 
-        <section id="students" class="page">
+                    <!-- Timer Controls -->
+                    <div class="flex items-center gap-4 mt-6 z-10">
+                        <button id="timer-toggle-btn" onclick="toggleTimer()" class="w-16 h-16 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white flex items-center justify-center transition-all glow-purple shadow-lg">
+                            <i data-lucide="play" id="timer-icon-play" class="w-8 h-8 fill-current ml-1"></i>
+                            <i data-lucide="pause" id="timer-icon-pause" class="w-8 h-8 hidden"></i>
+                        </button>
+                        <button onclick="resetTimer()" class="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center border border-slate-700 transition-colors" title="Reset Session">
+                            <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                        </button>
+                    </div>
 
-            <div class="section-heading">
-
-                <div>
-                    <h2>Student Database</h2>
-                    <p>Registered STUDY MATE students.</p>
+                    <!-- Active Selected Task Banner -->
+                    <div class="mt-8 w-full max-w-md p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <i data-lucide="target" class="w-5 h-5 text-cyan-400 shrink-0"></i>
+                            <div class="truncate">
+                                <p class="text-[10px] uppercase font-semibold text-slate-400">Linked Focus Task</p>
+                                <p id="active-focus-task-title" class="text-sm font-bold text-white truncate">General Study Session</p>
+                            </div>
+                        </div>
+                        <button onclick="switchTab('tasks')" class="text-xs text-brand-400 hover:underline shrink-0 ml-2">Change</button>
+                    </div>
                 </div>
 
-            </div>
+                <!-- Focus Stats & Session History -->
+                <div class="space-y-6">
+                    <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-4">
+                            <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+                            Session Summary
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center py-2 border-b border-slate-800">
+                                <span class="text-sm text-slate-400">Completed Sessions Today</span>
+                                <span id="pomo-sessions-completed" class="text-lg font-bold text-brand-400">3</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-slate-800">
+                                <span class="text-sm text-slate-400">Total Focus Time Today</span>
+                                <span id="pomo-total-time" class="text-lg font-bold text-emerald-400">75 mins</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-slate-800">
+                                <span class="text-sm text-slate-400">Audio Chime Signal</span>
+                                <span class="text-xs text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">Web Audio API Active</span>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="database-info">
-
-                <div>
-                    <strong id="databaseStudentCount">0</strong>
-                    <span>Registered Students</span>
+                    <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
+                            <i data-lucide="zap" class="w-5 h-5 text-brand-400"></i>
+                            Focus Tips
+                        </h3>
+                        <ul class="text-xs text-slate-300 space-y-2.5 list-disc list-inside">
+                            <li>Work in 25-minute intervals (Pomodoro Technique) to prevent mental fatigue.</li>
+                            <li>Link a specific micro-task to your session to maintain intent.</li>
+                            <li>Take short breaks to lock learned material into long-term memory.</li>
+                        </ul>
+                    </div>
                 </div>
-
             </div>
-
-            <div class="panel">
-
-                <div class="table-container">
-
-                    <table>
-
-                        <thead>
-
-                            <tr>
-                                <th>Student ID</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Course</th>
-                                <th>Department</th>
-                                <th>Year</th>
-                            </tr>
-
-                        </thead>
-
-                        <tbody id="studentTableBody"></tbody>
-
-                    </table>
-
-                </div>
-
-            </div>
-
         </section>
 
     </main>
 
-</div>
+    <!-- Modal 1: Add Custom Task Modal -->
+    <div id="modal-add-task" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full rounded-2xl border border-slate-700 p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-lg font-bold text-white">Create New Study Task</h3>
+                <button onclick="closeAddTaskModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
 
+            <form id="add-task-form" onsubmit="handleAddTask(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Task Title</label>
+                    <input type="text" id="new-task-title" required placeholder="e.g. Solve Discrete Math Practice Problems" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+                </div>
 
-<!-- ================= SUBJECT MODAL ================= -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Subject</label>
+                        <input type="text" id="new-task-subject" required placeholder="e.g. Mathematics" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Priority</label>
+                        <select id="new-task-priority" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+                            <option value="High">High</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                </div>
 
-<div class="modal" id="subjectModal">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Estimated Duration (Mins)</label>
+                    <input type="number" id="new-task-duration" min="15" step="15" value="45" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+                </div>
 
-    <div class="modal-content">
-
-        <div class="modal-header">
-
-            <h2>Add Subject</h2>
-
-            <button onclick="closeModal('subjectModal')">
-                ×
-            </button>
-
+                <div class="flex justify-end gap-3 pt-3">
+                    <button type="button" onclick="closeAddTaskModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-medium hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium transition-all shadow-lg shadow-brand-600/30">Save Task</button>
+                </div>
+            </form>
         </div>
-
-        <form id="subjectForm">
-
-            <label>Subject Name</label>
-            <input id="subjectName" placeholder="Data Structures" required>
-
-            <label>Difficulty</label>
-
-            <select id="subjectDifficulty">
-
-                <option value="Easy">Easy</option>
-                <option value="Medium">Medium</option>
-                <option value="Hard">Hard</option>
-
-            </select>
-
-            <button class="primary-btn" type="submit">
-                Add Subject
-            </button>
-
-        </form>
-
     </div>
 
-</div>
+    <!-- Modal 2: Relational Local Database & Data Controls Modal -->
+    <div id="modal-data" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel max-w-lg w-full rounded-2xl border border-slate-700 p-6 space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="database" class="w-5 h-5 text-brand-400"></i> Local Relational Database Controls
+                </h3>
+                <button onclick="closeDataModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
 
+            <p class="text-xs text-slate-300 leading-relaxed">
+                All your timetable data, generated micro-tasks, focus session metrics, and subject relations are safely stored inside your browser's LocalStorage.
+            </p>
 
-<!-- ================= TOPIC MODAL ================= -->
+            <div class="space-y-3">
+                <!-- Export Data -->
+                <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm font-semibold text-white">Export Database</h4>
+                        <p class="text-xs text-slate-400">Backup your plan and study stats as JSON</p>
+                    </div>
+                    <button onclick="exportDatabaseJSON()" class="px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i> Export
+                    </button>
+                </div>
 
-<div class="modal" id="topicModal">
+                <!-- Import Data -->
+                <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm font-semibold text-white">Import Database</h4>
+                        <p class="text-xs text-slate-400">Restore planner state from a JSON file</p>
+                    </div>
+                    <label class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer border border-slate-700 transition-colors">
+                        <i data-lucide="upload" class="w-3.5 h-3.5"></i> Import
+                        <input type="file" accept=".json" onchange="importDatabaseJSON(event)" class="hidden">
+                    </label>
+                </div>
 
-    <div class="modal-content">
+                <!-- Reset Data -->
+                <div class="p-4 rounded-xl bg-rose-950/30 border border-rose-900/40 flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm font-semibold text-rose-300">Reset to Defaults</h4>
+                        <p class="text-xs text-rose-400/80">Wipe current state and seed fresh data</p>
+                    </div>
+                    <button onclick="resetDatabase()" class="px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Reset DB
+                    </button>
+                </div>
+            </div>
 
-        <div class="modal-header">
-
-            <h2>Add Topic</h2>
-
-            <button onclick="closeModal('topicModal')">
-                ×
-            </button>
-
+            <div class="flex justify-end pt-2">
+                <button onclick="closeDataModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-medium hover:bg-slate-700">Close</button>
+            </div>
         </div>
-
-        <form id="topicForm">
-
-            <input type="hidden" id="topicSubjectId">
-
-            <label>Topic / Unit</label>
-
-            <input
-                id="topicName"
-                placeholder="Linked Lists"
-                required
-            >
-
-            <label>Difficulty</label>
-
-            <select id="topicDifficulty">
-
-                <option>Easy</option>
-                <option>Medium</option>
-                <option>Hard</option>
-
-            </select>
-
-            <button class="primary-btn" type="submit">
-                Add Topic
-            </button>
-
-        </form>
-
     </div>
 
-</div>
+    <!-- Notification Toast Element -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
+    <script>
+        /* ==========================================================================
+           STATE & LOCAL STORAGE RELATIONAL DATABASE SCHEMAS
+           ========================================================================== */
+        
+        const STORAGE_KEY = "KINETIQ_DATABASE_V1";
 
-<!-- ================= TASK MODAL ================= -->
+        const DEFAULT_DATABASE = {
+            subjects: [
+                { id: "sub_1", name: "Data Structures & Algorithms", priority: "High", examDate: "2026-10-15", difficulty: 4, hoursPerWeek: 10 },
+                { id: "sub_2", name: "Linear Algebra", priority: "Medium", examDate: "2026-11-01", difficulty: 3, hoursPerWeek: 6 },
+                { id: "sub_3", name: "System Architecture", priority: "Medium", examDate: "2026-10-28", difficulty: 3, hoursPerWeek: 6 }
+            ],
+            tasks: [
+                { id: "task_1", subjectId: "sub_1", subjectName: "Data Structures & Algorithms", title: "Review Graph Traversal (BFS & DFS)", priority: "High", duration: 60, completed: false, createdAt: new Date().toISOString() },
+                { id: "task_2", subjectId: "sub_1", subjectName: "Data Structures & Algorithms", title: "Implement Binary Search Tree Balance Check", priority: "High", duration: 45, completed: true, createdAt: new Date().toISOString() },
+                { id: "task_3", subjectId: "sub_2", subjectName: "Linear Algebra", title: "Practice Matrix Transformation & Eigenvalues", priority: "Medium", duration: 50, completed: false, createdAt: new Date().toISOString() },
+                { id: "task_4", subjectId: "sub_3", subjectName: "System Architecture", title: "Read Chapter 4: Cache Memory Hierarchy", priority: "Low", duration: 30, completed: true, createdAt: new Date().toISOString() }
+            ],
+            timetable: [
+                { day: "Monday", morning: "Data Structures & Algorithms", afternoon: "Linear Algebra", evening: "Review & Notes" },
+                { day: "Tuesday", morning: "System Architecture", afternoon: "Data Structures Practice", evening: "Self Testing" },
+                { day: "Wednesday", morning: "Linear Algebra", afternoon: "System Architecture", evening: "Problem Sets" },
+                { day: "Thursday", morning: "Data Structures & Algorithms", afternoon: "Linear Algebra", evening: "Revision" },
+                { day: "Friday", morning: "System Architecture", afternoon: "Data Structures Lab", evening: "Weekly Recap" },
+                { day: "Saturday", morning: "Mock Test Practice", afternoon: "Weak Areas Focus", evening: "Rest / Light Reading" },
+                { day: "Sunday", morning: "Weekly Planning", afternoon: "Buffer / Catch-up", evening: "Mind Mapping" }
+            ],
+            stats: {
+                streakDays: 7,
+                weeklyFocusHours: [3.5, 4.0, 2.5, 5.0, 3.5, 4.2, 2.0],
+                focusSessionsCompleted: 3,
+                totalFocusMinutesToday: 75
+            },
+            activeFocusTaskId: "task_1"
+        };
 
-<div class="modal" id="taskModal">
+        let db = loadDatabase();
 
-    <div class="modal-content">
+        function loadDatabase() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error("Failed to parse stored DB, resetting to defaults", e);
+            }
+            saveDatabase(DEFAULT_DATABASE);
+            return JSON.parse(JSON.stringify(DEFAULT_DATABASE));
+        }
 
-        <div class="modal-header">
+        function saveDatabase(dataToSave = db) {
+            db = dataToSave;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        }
 
-            <h2>Add Task</h2>
+        /* ==========================================================================
+           TAB NAVIGATION CONTROLLER
+           ========================================================================== */
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
 
-            <button onclick="closeModal('taskModal')">
-                ×
-            </button>
+            // Update desktop nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-brand-400', 'bg-brand-500/10');
+                btn.classList.add('text-slate-400');
+            });
 
-        </div>
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-400');
+                activeBtn.classList.add('text-brand-400', 'bg-brand-500/10');
+            }
 
-        <form id="taskForm">
+            // Re-render components when switching
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'ai-generator') renderTimetableGrid();
+            if (tabId === 'tasks') renderTaskList();
+            if (tabId === 'focus') renderFocusEngine();
+        }
 
-            <label>Task</label>
-            <input id="taskTitle" placeholder="Complete Unit 2 assignment" required>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
 
-            <label>Priority</label>
+        /* ==========================================================================
+           WEB AUDIO API CHIME GENERATOR
+           ========================================================================== */
+        function playCompletionAudio() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
 
-            <select id="taskPriority">
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
 
-                <option>Low</option>
-                <option selected>Medium</option>
-                <option>High</option>
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.15); // E5
+                osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.3); // G5
 
-            </select>
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
 
-            <label>Due Date</label>
-            <input type="date" id="taskDueDate" required>
+                osc.connect(gain);
+                gain.connect(ctx.destination);
 
-            <button class="primary-btn">
-                Add Task
-            </button>
+                osc.start(now);
+                osc.stop(now + 0.8);
+            } catch (e) {
+                console.log("Audio chime playback error:", e);
+            }
+        }
 
-        </form>
+        /* ==========================================================================
+           DASHBOARD ANALYTICS & CHART.JS
+           ========================================================================== */
+        let focusChartInstance = null;
 
-    </div>
+        function renderDashboard() {
+            // Update Stats
+            document.getElementById('stat-streak').innerText = `${db.stats.streakDays} Days 🔥`;
+            
+            const totalHours = db.stats.weeklyFocusHours.reduce((a, b) => a + b, 0).toFixed(1);
+            document.getElementById('stat-hours').innerText = `${totalHours} hrs`;
 
-</div>
+            const completedTasks = db.tasks.filter(t => t.completed).length;
+            const totalTasks = db.tasks.length;
+            document.getElementById('stat-tasks').innerText = `${completedTasks} / ${totalTasks}`;
 
+            const pendingCount = totalTasks - completedTasks;
+            document.getElementById('dash-pending-count').innerText = `${pendingCount} task${pendingCount === 1 ? '' : 's'}`;
 
-<!-- ================= NOTE MODAL ================= -->
+            const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            document.getElementById('stat-syllabus').innerText = `${completionPercentage}%`;
 
-<div class="modal" id="noteModal">
+            // Render Priority Tasks Side Widget
+            const priorityContainer = document.getElementById('dash-priority-tasks');
+            priorityContainer.innerHTML = '';
+            
+            const priorityTasks = db.tasks.filter(t => !t.completed).slice(0, 3);
+            if (priorityTasks.length === 0) {
+                priorityContainer.innerHTML = `<div class="text-xs text-slate-500 py-4 text-center">All caught up! Great job! 🎉</div>`;
+            } else {
+                priorityTasks.forEach(task => {
+                    const el = document.createElement('div');
+                    el.className = 'p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between';
+                    el.innerHTML = `
+                        <div class="flex items-center gap-2.5 overflow-hidden">
+                            <button onclick="toggleTaskStatus('${task.id}')" class="w-5 h-5 rounded border border-slate-600 flex items-center justify-center text-transparent hover:border-brand-400">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <div class="truncate">
+                                <p class="text-xs font-semibold text-slate-200 truncate">${escapeHtml(task.title)}</p>
+                                <span class="text-[10px] text-brand-400">${escapeHtml(task.subjectName)}</span>
+                            </div>
+                        </div>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${getPriorityBadgeClass(task.priority)}">${task.priority}</span>
+                    `;
+                    priorityContainer.appendChild(el);
+                });
+                lucide.createIcons();
+            }
 
-    <div class="modal-content">
+            // Chart.js Weekly Focus Analytics
+            const ctx = document.getElementById('focusChart').getContext('2d');
+            if (focusChartInstance) {
+                focusChartInstance.destroy();
+            }
 
-        <div class="modal-header">
+            focusChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Focus Study Hours',
+                        data: db.stats.weeklyFocusHours,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.15)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#a78bfa',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
 
-            <h2>Create Note</h2>
+        /* ==========================================================================
+           STREAMING_CHUNK:AI TIMETABLE & MICRO-TASK GENERATION ENGINE...
+           ========================================================================== */
+        function handleGeneratePlan(event) {
+            event.preventDefault();
+            const subjectName = document.getElementById('ai-subject').value.trim();
+            const priority = document.getElementById('ai-priority').value;
+            const difficulty = parseInt(document.getElementById('ai-difficulty').value);
+            const examDate = document.getElementById('ai-exam-date').value;
+            const hours = parseInt(document.getElementById('ai-hours').value);
 
-            <button onclick="closeModal('noteModal')">
-                ×
-            </button>
+            if (!subjectName) return;
 
-        </div>
+            // 1. Add / Update Subject Entry
+            const newSubId = "sub_" + Date.now();
+            const newSubject = { id: newSubId, name: subjectName, priority, examDate, difficulty, hoursPerWeek: hours };
+            db.subjects.push(newSubject);
 
-        <form id="noteForm">
+            // 2. Algorithmically Generate Micro-Tasks based on subject & difficulty
+            const generatedTasks = generateMicroTaskDecomposition(newSubId, subjectName, difficulty, priority);
+            db.tasks = [...db.tasks, ...generatedTasks];
 
-            <label>Title</label>
-            <input id="noteTitle" placeholder="Important formulas" required>
+            // 3. Auto Balance Timetable Grid
+            updateBalancedTimetable(subjectName);
 
-            <label>Subject</label>
-            <input id="noteSubject" placeholder="Mathematics">
+            saveDatabase();
+            showToast(`AI Plan created for ${subjectName}!`);
 
-            <label>Content</label>
+            // Reset Form & Render Outputs
+            document.getElementById('ai-subject').value = '';
+            renderTimetableGrid();
+            renderGeneratedMicroTasks(generatedTasks);
+        }
 
-            <textarea
-                id="noteContent"
-                rows="7"
-                placeholder="Write your notes here..."
-                required
-            ></textarea>
+        function generateMicroTaskDecomposition(subId, subName, difficulty, priority) {
+            const modules = [
+                `Core Concepts & Foundations of ${subName}`,
+                `Deep Dive: Key Principles & Theorems`,
+                `Practical Applications & Exercise Sets`,
+                `Advanced Topics & Problem Solving`,
+                `Past Exam Review & Mock Assessment`
+            ];
 
-            <button class="primary-btn">
-                Save Note
-            </button>
+            return modules.slice(0, 3 + Math.min(difficulty, 2)).map((modTitle, idx) => ({
+                id: `task_ai_${Date.now()}_${idx}`,
+                subjectId: subId,
+                subjectName: subName,
+                title: modTitle,
+                priority: priority,
+                duration: 45,
+                completed: false,
+                createdAt: new Date().toISOString()
+            }));
+        }
 
-        </form>
+        function updateBalancedTimetable(newSubjectName) {
+            // Assign subject into empty slot or replace least frequent day slot
+            db.timetable = db.timetable.map((row, index) => {
+                if (index % 2 === 0) {
+                    return { ...row, morning: newSubjectName };
+                } else if (index % 3 === 0) {
+                    return { ...row, afternoon: newSubjectName };
+                }
+                return row;
+            });
+        }
 
-    </div>
+        function renderTimetableGrid() {
+            const tbody = document.getElementById('timetable-body');
+            tbody.innerHTML = '';
 
-</div>
+            db.timetable.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-800/40 transition-colors';
+                tr.innerHTML = `
+                    <td class="py-3 px-3 font-semibold text-brand-300">${row.day}</td>
+                    <td class="py-3 px-3"><span class="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-slate-200">${escapeHtml(row.morning)}</span></td>
+                    <td class="py-3 px-3"><span class="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-slate-200">${escapeHtml(row.afternoon)}</span></td>
+                    <td class="py-3 px-3"><span class="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-slate-200">${escapeHtml(row.evening)}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
 
+        function renderGeneratedMicroTasks(tasks) {
+            const container = document.getElementById('ai-generated-micro-tasks');
+            if (!tasks || tasks.length === 0) return;
 
-<!-- ================= EXAM MODAL ================= -->
+            container.innerHTML = '';
+            tasks.forEach(task => {
+                const el = document.createElement('div');
+                el.className = 'p-3 rounded-xl bg-slate-900/90 border border-brand-500/30 flex items-center justify-between text-xs';
+                el.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-brand-400"></i>
+                        <div>
+                            <span class="font-bold text-white">${escapeHtml(task.title)}</span>
+                            <span class="text-slate-400 block text-[10px]">${task.duration} mins • ${task.priority} Priority</span>
+                        </div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 text-[10px] border border-brand-500/30">Auto Added</span>
+                `;
+                container.appendChild(el);
+            });
+            lucide.createIcons();
+        }
 
-<div class="modal" id="examModal">
+        /* ==========================================================================
+           STREAMING_CHUNK:TASK MANAGER CRUD & FILTERING...
+           ========================================================================== */
+        function renderTaskList() {
+            const search = document.getElementById('task-search').value.toLowerCase();
+            const statusFilter = document.getElementById('task-filter-status').value;
+            const priorityFilter = document.getElementById('task-filter-priority').value;
 
-    <div class="modal-content">
+            const container = document.getElementById('tasks-container');
+            container.innerHTML = '';
 
-        <div class="modal-header">
+            let filtered = db.tasks.filter(task => {
+                const matchesSearch = task.title.toLowerCase().includes(search) || task.subjectName.toLowerCase().includes(search);
+                const matchesStatus = statusFilter === 'ALL' || 
+                                     (statusFilter === 'COMPLETED' && task.completed) || 
+                                     (statusFilter === 'PENDING' && !task.completed);
+                const matchesPriority = priorityFilter === 'ALL' || task.priority === priorityFilter;
 
-            <h2>Add Exam</h2>
+                return matchesSearch && matchesStatus && matchesPriority;
+            });
 
-            <button onclick="closeModal('examModal')">
-                ×
-            </button>
+            document.getElementById('task-count-badge').innerText = `${filtered.length} Task${filtered.length === 1 ? '' : 's'}`;
 
-        </div>
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-slate-500 text-sm">
+                        No tasks matched your criteria.
+                    </div>
+                `;
+                return;
+            }
 
-        <form id="examForm">
+            filtered.forEach(task => {
+                const el = document.createElement('div');
+                el.className = `p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors ${task.completed ? 'opacity-60' : ''}`;
+                
+                const isSelectedFocus = db.activeFocusTaskId === task.id;
 
-            <label>Subject</label>
-            <input id="examSubject" placeholder="Data Structures" required>
+                el.innerHTML = `
+                    <div class="flex items-center gap-3.5 overflow-hidden">
+                        <button onclick="toggleTaskStatus('${task.id}')" class="w-5 h-5 rounded border flex items-center justify-center transition-colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-600 text-transparent hover:border-brand-400'}">
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <div class="truncate">
+                            <h4 class="text-sm font-semibold ${task.completed ? 'line-through text-slate-400' : 'text-slate-100'} truncate">${escapeHtml(task.title)}</h4>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-[11px] text-brand-400 font-medium">${escapeHtml(task.subjectName)}</span>
+                                <span class="text-[10px] text-slate-500">• ${task.duration} mins</span>
+                            </div>
+                        </div>
+                    </div>
 
-            <label>Exam Date</label>
-            <input type="date" id="examDate" required>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${getPriorityBadgeClass(task.priority)}">${task.priority}</span>
+                        
+                        <button onclick="setActiveFocusTask('${task.id}')" class="px-2.5 py-1 rounded-lg text-xs font-medium border ${isSelectedFocus ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'}" title="Link to Focus Timer">
+                            <i data-lucide="timer" class="w-3.5 h-3.5 inline mr-1"></i> ${isSelectedFocus ? 'Linked' : 'Focus'}
+                        </button>
 
-            <label>Important Topics</label>
+                        <button onclick="deleteTask('${task.id}')" class="p-1.5 text-slate-500 hover:text-rose-400 transition-colors" title="Delete Task">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
 
-            <textarea
-                id="examTopics"
-                placeholder="Trees, Graphs, Linked Lists"
-            ></textarea>
+            lucide.createIcons();
+        }
 
-            <button class="primary-btn">
-                Add Exam
-            </button>
+        function toggleTaskStatus(taskId) {
+            db.tasks = db.tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t);
+            saveDatabase();
+            renderTaskList();
+            renderDashboard();
+        }
 
-        </form>
+        function deleteTask(taskId) {
+            db.tasks = db.tasks.filter(t => t.id !== taskId);
+            saveDatabase();
+            renderTaskList();
+            renderDashboard();
+            showToast("Task deleted.");
+        }
 
-    </div>
+        function openAddTaskModal() {
+            document.getElementById('modal-add-task').classList.remove('hidden');
+        }
 
-</div>
+        function closeAddTaskModal() {
+            document.getElementById('modal-add-task').classList.add('hidden');
+        }
 
+        function handleAddTask(event) {
+            event.preventDefault();
+            const title = document.getElementById('new-task-title').value.trim();
+            const subject = document.getElementById('new-task-subject').value.trim();
+            const priority = document.getElementById('new-task-priority').value;
+            const duration = parseInt(document.getElementById('new-task-duration').value);
 
-<!-- TOAST -->
+            if (!title || !subject) return;
 
-<div id="toast"></div>
+            const newTask = {
+                id: "task_custom_" + Date.now(),
+                subjectId: "sub_custom",
+                subjectName: subject,
+                title: title,
+                priority: priority,
+                duration: duration,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
 
+            db.tasks.unshift(newTask);
+            saveDatabase();
+            closeAddTaskModal();
+            renderTaskList();
+            renderDashboard();
+            showToast("Task added successfully!");
 
-<script src="script.js"></script>
+            document.getElementById('add-task-form').reset();
+        }
 
+        /* ==========================================================================
+           STREAMING_CHUNK:POMODORO FOCUS ENGINE CONTROLLER...
+           ========================================================================== */
+        let timerInterval = null;
+        let timerMode = 'work'; // work, short, long
+        let timeRemaining = 25 * 60; // 25 minutes in seconds
+        let totalDuration = 25 * 60;
+        let isRunning = false;
+
+        function setTimerMode(mode) {
+            if (isRunning) toggleTimer(); // Pause if running
+
+            timerMode = mode;
+            document.querySelectorAll('#pomo-mode-work, #pomo-mode-short, #pomo-mode-long').forEach(btn => {
+                btn.classList.remove('bg-brand-600', 'text-white', 'shadow-md');
+                btn.classList.add('text-slate-400');
+            });
+
+            if (mode === 'work') {
+                timeRemaining = 25 * 60;
+                document.getElementById('pomo-mode-work').classList.add('bg-brand-600', 'text-white', 'shadow-md');
+                document.getElementById('timer-status-label').innerText = "Ready to Focus";
+            } else if (mode === 'short') {
+                timeRemaining = 5 * 60;
+                document.getElementById('pomo-mode-short').classList.add('bg-brand-600', 'text-white', 'shadow-md');
+                document.getElementById('timer-status-label').innerText = "Short Break";
+            } else if (mode === 'long') {
+                timeRemaining = 15 * 60;
+                document.getElementById('pomo-mode-long').classList.add('bg-brand-600', 'text-white', 'shadow-md');
+                document.getElementById('timer-status-label').innerText = "Long Rest";
+            }
+
+            totalDuration = timeRemaining;
+            updateTimerDisplay();
+        }
+
+        function toggleTimer() {
+            const playIcon = document.getElementById('timer-icon-play');
+            const pauseIcon = document.getElementById('timer-icon-pause');
+
+            if (isRunning) {
+                // Pause
+                clearInterval(timerInterval);
+                isRunning = false;
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                document.getElementById('timer-status-label').innerText = "Session Paused";
+            } else {
+                // Start
+                isRunning = true;
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                document.getElementById('timer-status-label').innerText = timerMode === 'work' ? "Focusing..." : "Resting...";
+
+                timerInterval = setInterval(() => {
+                    if (timeRemaining > 0) {
+                        timeRemaining--;
+                        updateTimerDisplay();
+                    } else {
+                        // Timer Complete
+                        clearInterval(timerInterval);
+                        isRunning = false;
+                        playIcon.classList.remove('hidden');
+                        pauseIcon.classList.add('hidden');
+                        
+                        playCompletionAudio();
+                        handleSessionCompleted();
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            if (isRunning) toggleTimer();
+            setTimerMode(timerMode);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timeRemaining / 60);
+            const secs = timeRemaining % 60;
+            const formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            document.getElementById('timer-display').innerText = formatted;
+
+            // Update SVG Circular Ring Progress
+            const circle = document.getElementById('timer-progress-circle');
+            const circumference = 2 * Math.PI * 42; // r=42 -> ~263.89
+            const offset = circumference - (timeRemaining / totalDuration) * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        function setActiveFocusTask(taskId) {
+            db.activeFocusTaskId = taskId;
+            saveDatabase();
+            renderFocusEngine();
+            renderTaskList();
+            showToast("Linked task to Focus Engine!");
+        }
+
+        function renderFocusEngine() {
+            const activeTask = db.tasks.find(t => t.id === db.activeFocusTaskId);
+            const titleEl = document.getElementById('active-focus-task-title');
+            if (activeTask) {
+                titleEl.innerText = activeTask.title;
+            } else {
+                titleEl.innerText = "General Study Session";
+            }
+
+            document.getElementById('pomo-sessions-completed').innerText = db.stats.focusSessionsCompleted;
+            document.getElementById('pomo-total-time').innerText = `${db.stats.totalFocusMinutesToday} mins`;
+        }
+
+        function handleSessionCompleted() {
+            if (timerMode === 'work') {
+                db.stats.focusSessionsCompleted += 1;
+                db.stats.totalFocusMinutesToday += 25;
+
+                // Update weekly chart metrics dynamically
+                db.stats.weeklyFocusHours[6] = parseFloat((db.stats.weeklyFocusHours[6] + 0.41).toFixed(1));
+
+                saveDatabase();
+                renderFocusEngine();
+                renderDashboard();
+                showToast("🎉 Great job! Focus session completed!");
+            } else {
+                showToast("Break over! Ready to focus again?");
+            }
+            setTimerMode('work');
+        }
+
+        /* ==========================================================================
+           STREAMING_CHUNK:DATABASE MANAGEMENT & MODAL CONTROLS...
+           ========================================================================== */
+        function openDataModal() {
+            document.getElementById('modal-data').classList.remove('hidden');
+        }
+
+        function closeDataModal() {
+            document.getElementById('modal-data').classList.add('hidden');
+        }
+
+        function exportDatabaseJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `KinetiQ_Backup_${new Date().toISOString().slice(0, 10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("Database exported as JSON.");
+        }
+
+        function importDatabaseJSON(event) {
+            const fileReader = new FileReader();
+            fileReader.onload = function(e) {
+                try {
+                    const importedDb = JSON.parse(e.target.result);
+                    if (importedDb && importedDb.tasks && importedDb.timetable) {
+                        saveDatabase(importedDb);
+                        closeDataModal();
+                        renderDashboard();
+                        showToast("Database imported successfully!");
+                    } else {
+                        showToast("Invalid backup JSON format.");
+                    }
+                } catch (err) {
+                    showToast("Error parsing JSON file.");
+                }
+            };
+            fileReader.readAsText(event.target.files[0]);
+        }
+
+        function resetDatabase() {
+            saveDatabase(DEFAULT_DATABASE);
+            closeDataModal();
+            renderDashboard();
+            renderTimetableGrid();
+            renderTaskList();
+            renderFocusEngine();
+            showToast("Database reset to factory defaults.");
+        }
+
+        /* ==========================================================================
+           UTILITIES & HELPERS
+           ========================================================================== */
+        function getPriorityBadgeClass(priority) {
+            if (priority === 'High') return 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+            if (priority === 'Medium') return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+            return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'glass-panel px-4 py-3 rounded-xl border border-brand-500/40 text-white text-xs font-semibold shadow-xl flex items-center gap-2 animate-bounce';
+            toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-brand-400"></i> ${escapeHtml(message)}`;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        /* ==========================================================================
+           INITIALIZATION
+           ========================================================================== */
+        window.onload = function () {
+            lucide.createIcons();
+            renderDashboard();
+            renderTimetableGrid();
+            renderTaskList();
+            renderFocusEngine();
+            updateTimerDisplay();
+        };
+    </script>
 </body>
 </html>
